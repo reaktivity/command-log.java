@@ -67,7 +67,7 @@ public final class Loggable implements AutoCloseable
             System.out.println(String.format("[%s -> %s]\t[0x%016x] BEGIN", sender, receiver, streamId));
             break;
         case 0x00000002:
-            final int payloadBytes = buffer.getShort(index + SIZE_OF_LONG);
+            final int payloadBytes = buffer.getShort(index + SIZE_OF_LONG) & 0xFFFF;
             System.out.println(String.format("[%s -> %s]\t[0x%016x] DATA (%d)", sender, receiver, streamId, payloadBytes));
             break;
         case 0x00000003:
@@ -90,7 +90,7 @@ public final class Loggable implements AutoCloseable
             System.out.println(String.format("[%s <- %s]\t[0x%016x] RESET", sender, receiver, streamId));
             break;
         case 0x40000002:
-            final int update = buffer.getInt(index + SIZE_OF_LONG);
+            final long update = buffer.getInt(index + SIZE_OF_LONG) & 0xFFFF_FFFFL;
             System.out.println(String.format("[%s <- %s]\t[0x%016x] WINDOW (%d)", sender, receiver, streamId, update));
             break;
         }
