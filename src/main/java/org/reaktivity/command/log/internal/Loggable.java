@@ -15,16 +15,28 @@
  */
 package org.reaktivity.command.log.internal;
 
-import static org.agrona.BitUtil.SIZE_OF_LONG;
+import static java.lang.String.format;
 
 import org.agrona.MutableDirectBuffer;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.types.stream.BeginFW;
+import org.reaktivity.command.log.internal.types.stream.DataFW;
+import org.reaktivity.command.log.internal.types.stream.EndFW;
+import org.reaktivity.command.log.internal.types.stream.ResetFW;
+import org.reaktivity.command.log.internal.types.stream.WindowFW;
 
 public final class Loggable implements AutoCloseable
 {
-    private final String receiver;
-    private final String sender;
+
+    private final BeginFW beginRO = new BeginFW();
+    private final DataFW dataRO = new DataFW();
+    private final EndFW endRO = new EndFW();
+
+    private final ResetFW resetRO = new ResetFW();
+    private final WindowFW windowRO = new WindowFW();
+
+    private final String format;
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final RingBufferSpy throttleBuffer;
@@ -34,8 +46,7 @@ public final class Loggable implements AutoCloseable
         String sender,
         StreamsLayout layout)
     {
-        this.receiver = receiver;
-        this.sender = sender;
+        this.format = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.throttleBuffer = layout.throttleBuffer();
@@ -59,19 +70,19 @@ public final class Loggable implements AutoCloseable
         int index,
         int length)
     {
-        final long streamId = buffer.getLong(index);
-
         switch (msgTypeId)
         {
-        case 0x00000001:
-            System.out.println(String.format("[%s -> %s]\t[0x%016x] BEGIN", sender, receiver, streamId));
+        case BeginFW.TYPE_ID:
+            final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+            System.out.println(format(format, begin.streamId(), "BEGIN"));
             break;
-        case 0x00000002:
-            final int payloadBytes = buffer.getShort(index + SIZE_OF_LONG) & 0xFFFF;
-            System.out.println(String.format("[%s -> %s]\t[0x%016x] DATA (%d)", sender, receiver, streamId, payloadBytes));
+        case DataFW.TYPE_ID:
+            final DataFW data = dataRO.wrap(buffer, index, index + length);
+            System.out.println(format(format, data.streamId(), format("DATA (%d)", data.length())));
             break;
-        case 0x00000003:
-            System.out.println(String.format("[%s -> %s]\t[0x%016x] END", sender, receiver, streamId));
+        case EndFW.TYPE_ID:
+            final EndFW end = endRO.wrap(buffer, index, index + length);
+            System.out.println(format(format, end.streamId(), "END"));
             break;
         }
     }
@@ -82,16 +93,15 @@ public final class Loggable implements AutoCloseable
         int index,
         int length)
     {
-        final long streamId = buffer.getLong(index);
-
         switch (msgTypeId)
         {
-        case 0x40000001:
-            System.out.println(String.format("[%s <- %s]\t[0x%016x] RESET", sender, receiver, streamId));
+        case ResetFW.TYPE_ID:
+            final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+            System.out.println(format(format, reset.streamId(), "RESET"));
             break;
-        case 0x40000002:
-            final long update = buffer.getInt(index + SIZE_OF_LONG) & 0xFFFF_FFFFL;
-            System.out.println(String.format("[%s <- %s]\t[0x%016x] WINDOW (%d)", sender, receiver, streamId, update));
+        case WindowFW.TYPE_ID:
+            final WindowFW window = windowRO.wrap(buffer, index, index + length);
+            System.out.println(format(format, window.streamId(), format("WINDOW (%d)", window.update())));
             break;
         }
     }
