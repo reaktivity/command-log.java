@@ -48,7 +48,7 @@ public final class Loggable implements AutoCloseable
         StreamsLayout layout)
     {
         this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
-        this.throttleFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", receiver, sender);
+        this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s", sender, receiver);
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.throttleBuffer = layout.throttleBuffer();
