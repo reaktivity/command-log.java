@@ -76,7 +76,8 @@ public final class Loggable implements AutoCloseable
         {
         case BeginFW.TYPE_ID:
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            System.out.println(format(streamFormat, begin.streamId(), format("BEGIN [0x%016x]", begin.correlationId())));
+            System.out.println(format(streamFormat, begin.streamId(),
+                    format("BEGIN [0x%016x] [0x%016x]", begin.referenceId(), begin.correlationId())));
             break;
         case DataFW.TYPE_ID:
             final DataFW data = dataRO.wrap(buffer, index, index + length);
