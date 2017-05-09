@@ -74,11 +74,11 @@ public final class Loggable implements AutoCloseable
         {
         case BeginFW.TYPE_ID:
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, begin.streamId(), "BEGIN"));
+            System.out.println(format(format, begin.streamId(), format("BEGIN [0x%016x]", begin.correlationId())));
             break;
         case DataFW.TYPE_ID:
             final DataFW data = dataRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, data.streamId(), format("DATA (%d)", data.length())));
+            System.out.println(format(format, data.streamId(), format("DATA [%d]", data.length())));
             break;
         case EndFW.TYPE_ID:
             final EndFW end = endRO.wrap(buffer, index, index + length);
@@ -101,7 +101,7 @@ public final class Loggable implements AutoCloseable
             break;
         case WindowFW.TYPE_ID:
             final WindowFW window = windowRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, window.streamId(), format("WINDOW (%d)", window.update())));
+            System.out.println(format(format, window.streamId(), format("WINDOW [%d]", window.update())));
             break;
         }
     }
