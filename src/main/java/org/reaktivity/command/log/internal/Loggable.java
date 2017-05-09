@@ -36,7 +36,8 @@ public final class Loggable implements AutoCloseable
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
 
-    private final String format;
+    private final String streamFormat;
+    private final String throttleFormat;
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final RingBufferSpy throttleBuffer;
@@ -46,7 +47,8 @@ public final class Loggable implements AutoCloseable
         String sender,
         StreamsLayout layout)
     {
-        this.format = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
+        this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
+        this.throttleFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", receiver, sender);
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.throttleBuffer = layout.throttleBuffer();
@@ -74,15 +76,15 @@ public final class Loggable implements AutoCloseable
         {
         case BeginFW.TYPE_ID:
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, begin.streamId(), format("BEGIN [0x%016x]", begin.correlationId())));
+            System.out.println(format(streamFormat, begin.streamId(), format("BEGIN [0x%016x]", begin.correlationId())));
             break;
         case DataFW.TYPE_ID:
             final DataFW data = dataRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, data.streamId(), format("DATA [%d]", data.length())));
+            System.out.println(format(streamFormat, data.streamId(), format("DATA [%d]", data.length())));
             break;
         case EndFW.TYPE_ID:
             final EndFW end = endRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, end.streamId(), "END"));
+            System.out.println(format(streamFormat, end.streamId(), "END"));
             break;
         }
     }
@@ -97,11 +99,11 @@ public final class Loggable implements AutoCloseable
         {
         case ResetFW.TYPE_ID:
             final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, reset.streamId(), "RESET"));
+            System.out.println(format(throttleFormat, reset.streamId(), "RESET"));
             break;
         case WindowFW.TYPE_ID:
             final WindowFW window = windowRO.wrap(buffer, index, index + length);
-            System.out.println(format(format, window.streamId(), format("WINDOW [%d]", window.update())));
+            System.out.println(format(throttleFormat, window.streamId(), format("WINDOW [%d]", window.update())));
             break;
         }
     }
