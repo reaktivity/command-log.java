@@ -28,7 +28,6 @@ import org.reaktivity.command.log.internal.types.stream.WindowFW;
 
 public final class Loggable implements AutoCloseable
 {
-
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
@@ -76,18 +75,46 @@ public final class Loggable implements AutoCloseable
         {
         case BeginFW.TYPE_ID:
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            System.out.println(format(streamFormat, begin.streamId(),
-                    format("BEGIN [0x%016x] [0x%016x]", begin.referenceId(), begin.correlationId())));
+            handleBegin(begin);
             break;
         case DataFW.TYPE_ID:
             final DataFW data = dataRO.wrap(buffer, index, index + length);
-            System.out.println(format(streamFormat, data.streamId(), format("DATA [%d]", data.length())));
+            handleData(data);
             break;
         case EndFW.TYPE_ID:
             final EndFW end = endRO.wrap(buffer, index, index + length);
-            System.out.println(format(streamFormat, end.streamId(), "END"));
+            handleEnd(end);
             break;
         }
+    }
+
+    private void handleBegin(
+        final BeginFW begin)
+    {
+        final long streamId = begin.streamId();
+        final String sourceName = begin.source().asString();
+        final long sourceRef = begin.sourceRef();
+        final long correlationId = begin.correlationId();
+
+        System.out.println(format(streamFormat, streamId,
+                format("BEGIN \"%s\" [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId)));
+    }
+
+    private void handleData(
+        final DataFW data)
+    {
+        final long streamId = data.streamId();
+        final int length = data.length();
+
+        System.out.println(format(streamFormat, streamId, format("DATA [%d]", length)));
+    }
+
+    private void handleEnd(
+        final EndFW end)
+    {
+        final long streamId = end.streamId();
+
+        System.out.println(format(streamFormat, streamId, "END"));
     }
 
     private void handleThrottle(
@@ -100,12 +127,30 @@ public final class Loggable implements AutoCloseable
         {
         case ResetFW.TYPE_ID:
             final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-            System.out.println(format(throttleFormat, reset.streamId(), "RESET"));
+            handleReset(reset);
             break;
         case WindowFW.TYPE_ID:
             final WindowFW window = windowRO.wrap(buffer, index, index + length);
-            System.out.println(format(throttleFormat, window.streamId(), format("WINDOW [%d]", window.update())));
+            handleWindow(window);
             break;
         }
+    }
+
+    private void handleReset(
+        final ResetFW reset)
+    {
+        final long streamId = reset.streamId();
+
+        System.out.println(format(throttleFormat, streamId, "RESET"));
+    }
+
+    private void handleWindow(
+        final WindowFW window)
+    {
+        final long streamId = window.streamId();
+        final int update = window.update();
+        final int frames = window.frames();
+
+        System.out.println(format(throttleFormat, streamId, format("WINDOW [%d] [%d]", update, frames)));
     }
 }
