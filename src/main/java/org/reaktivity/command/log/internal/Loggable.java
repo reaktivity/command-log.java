@@ -41,19 +41,24 @@ public final class Loggable implements AutoCloseable
     private final RingBufferSpy streamsBuffer;
     private final RingBufferSpy throttleBuffer;
 
-    public Loggable(
+    Loggable(
         String receiver,
         String sender,
         StreamsLayout layout)
     {
-        this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
-        this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s", sender, receiver);
+        this.streamFormat = sender.compareToIgnoreCase(receiver) < 0
+                ? String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver)
+                : String.format("[%s <- %s]\t[0x%%016x] %%s", receiver, sender);
+        this.throttleFormat = sender.compareToIgnoreCase(receiver) < 0
+                ? String.format("[%s <- %s]\t[0x%%016x] %%s", sender, receiver)
+                : String.format("[%s -> %s]\t[0x%%016x] %%s", receiver, sender);
+
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.throttleBuffer = layout.throttleBuffer();
     }
 
-    public int process()
+    int process()
     {
         return streamsBuffer.spy(this::handleStream, 1) +
                 throttleBuffer.spy(this::handleThrottle, 1);
