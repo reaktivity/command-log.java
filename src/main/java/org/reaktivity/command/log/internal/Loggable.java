@@ -20,6 +20,7 @@ import static java.lang.String.format;
 import org.agrona.MutableDirectBuffer;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
 import org.reaktivity.command.log.internal.types.stream.EndFW;
@@ -31,6 +32,7 @@ public final class Loggable implements AutoCloseable
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
+    private final AbortFW abortRO = new AbortFW();
 
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
@@ -86,6 +88,10 @@ public final class Loggable implements AutoCloseable
             final EndFW end = endRO.wrap(buffer, index, index + length);
             handleEnd(end);
             break;
+        case AbortFW.TYPE_ID:
+            final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+            handleAbort(abort);
+            break;
         }
     }
 
@@ -116,6 +122,14 @@ public final class Loggable implements AutoCloseable
         final long streamId = end.streamId();
 
         System.out.println(format(streamFormat, streamId, "END"));
+    }
+
+    private void handleAbort(
+        final AbortFW abort)
+    {
+        final long streamId = abort.streamId();
+
+        System.out.println(format(streamFormat, streamId, "ABORT"));
     }
 
     private void handleThrottle(
