@@ -147,6 +147,7 @@ public final class LogCommand
         options.addOption(builder("h").longOpt("help").desc("print this message").build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
+        options.addOption(builder("D").hasArgs().desc("define property").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
@@ -159,14 +160,31 @@ public final class LogCommand
         {
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
+            String[] defines = cmdline.getOptionValues('D');
 
             Properties properties = new Properties();
+            setDefinedProperties(properties, defines);
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
 
             final Configuration config = new Configuration(properties);
 
             LogCommand command = new LogCommand(config, verbose);
             command.invoke();
+        }
+    }
+
+    private static void setDefinedProperties(
+        Properties properties,
+        String[] defines)
+    {
+        if (defines != null)
+        {
+            for (int i=0; i < defines.length; i += 2)
+            {
+                String name = defines[i];
+                String value = defines[i+1];
+                properties.setProperty(name, value);
+            }
         }
     }
 }
