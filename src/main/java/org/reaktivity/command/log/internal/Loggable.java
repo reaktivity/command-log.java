@@ -42,14 +42,25 @@ public final class Loggable implements AutoCloseable
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final RingBufferSpy throttleBuffer;
+    private final boolean verbose;
 
     Loggable(
         String receiver,
         String sender,
-        StreamsLayout layout)
+        StreamsLayout layout,
+        boolean verbose)
     {
-        this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
-        this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s", sender, receiver);
+        this.verbose = verbose;
+        if (verbose)
+        {
+            this.streamFormat = String.format("[%s -> %s]\t[StreamId=0x%%016x] %%s", sender, receiver);
+            this.throttleFormat = String.format("[%s <- %s]\t[StreamId=0x%%016x] %%s", sender, receiver);
+        }
+        else
+        {
+            this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
+            this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s", sender, receiver);
+        }
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
@@ -103,8 +114,19 @@ public final class Loggable implements AutoCloseable
         final long sourceRef = begin.sourceRef();
         final long correlationId = begin.correlationId();
 
-        System.out.println(format(streamFormat, streamId,
-                format("BEGIN \"%s\" [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId)));
+        if (verbose)
+        {
+            System.out.println(format(streamFormat, streamId,
+                    format("BEGIN sourceName=\"%s\" [sourceRef=0x%016x] [correlationId=0x%016x]",
+                            sourceName,
+                            sourceRef,
+                            correlationId)));
+        }
+        else
+        {
+            System.out.println(format(streamFormat, streamId,
+                    format("BEGIN \"%s\" [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId)));
+        }
     }
 
     private void handleData(
