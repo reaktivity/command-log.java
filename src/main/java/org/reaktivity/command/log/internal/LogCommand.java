@@ -83,7 +83,7 @@ public final class LogCommand
         String receiver = path.getName(path.getNameCount() - 3).toString();
         String sender = sender(path);
 
-        return new Loggable(receiver, sender, layout);
+        return new Loggable(receiver, sender, layout, verbose);
     }
 
     private void onDiscovered(
