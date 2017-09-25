@@ -29,7 +29,7 @@ import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
 
-public final class Loggable implements AutoCloseable
+public final class LoggableStream implements AutoCloseable
 {
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -49,7 +49,7 @@ public final class Loggable implements AutoCloseable
     private final Logger out;
     private final boolean verbose;
 
-    Loggable(
+    LoggableStream(
         String receiver,
         String sender,
         StreamsLayout layout,
