@@ -43,8 +43,9 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <nukleus.version>0.6.2</nukleus.version>
-    <nukleus.plugin.version>0.7.8</nukleus.plugin.version>
+    <nukleus.plugin.version>0.10</nukleus.plugin.version>
     <nukleus.spec.version>0.8</nukleus.spec.version>
+    <nukleus.http.spec.version>0.32</nukleus.http.spec.version>
   </properties>
 
   <dependencies>
@@ -52,6 +53,12 @@
       <groupId>org.reaktivity</groupId>
       <artifactId>nukleus.spec</artifactId>
       <version>${nukleus.spec.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.reaktivity</groupId>
+      <artifactId>nukleus-http.spec</artifactId>
+      <version>${nukleus.http.spec.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -73,7 +80,7 @@
         <artifactId>nukleus-maven-plugin</artifactId>
         <version>${nukleus.plugin.version}</version>
         <configuration>
-          <scopeNames>core::stream</scopeNames>
+          <scopeNames>core::stream http::stream</scopeNames>
           <packageName>org.reaktivity.command.log.internal.types</packageName>
         </configuration>
         <executions>

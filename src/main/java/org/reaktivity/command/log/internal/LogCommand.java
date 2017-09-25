@@ -51,15 +51,18 @@ public final class LogCommand
     private final boolean verbose;
     private final long streamsCapacity;
     private final long throttleCapacity;
+    private final Logger out;
 
     private LogCommand(
         Configuration config,
+        Logger out,
         boolean verbose)
     {
         this.directory = config.directory();
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
+        this.out = out;
     }
 
     private boolean isStreamsFile(
@@ -83,7 +86,7 @@ public final class LogCommand
         String receiver = path.getName(path.getNameCount() - 3).toString();
         String sender = sender(path);
 
-        return new Loggable(receiver, sender, layout);
+        return new Loggable(receiver, sender, layout, out, verbose);
     }
 
     private void onDiscovered(
@@ -91,7 +94,7 @@ public final class LogCommand
     {
         if (verbose)
         {
-            System.out.println("Discovered: " + path);
+            out.printf("Discovered: %s\n", path);
         }
     }
 
@@ -168,7 +171,7 @@ public final class LogCommand
 
             final Configuration config = new Configuration(properties);
 
-            LogCommand command = new LogCommand(config, verbose);
+            LogCommand command = new LogCommand(config, System.out::printf, verbose);
             command.invoke();
         }
     }

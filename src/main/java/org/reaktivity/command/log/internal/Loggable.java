@@ -20,10 +20,12 @@ import static java.lang.String.format;
 import org.agrona.MutableDirectBuffer;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
 import org.reaktivity.command.log.internal.types.stream.EndFW;
+import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
 
@@ -37,23 +39,31 @@ public final class Loggable implements AutoCloseable
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
 
+    private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+
     private final String streamFormat;
     private final String throttleFormat;
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final RingBufferSpy throttleBuffer;
+    private final Logger out;
+    private final boolean verbose;
 
     Loggable(
         String receiver,
         String sender,
-        StreamsLayout layout)
+        StreamsLayout layout,
+        Logger logger,
+        boolean verbose)
     {
-        this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s", sender, receiver);
-        this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s", sender, receiver);
+        this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s\n", sender, receiver);
+        this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s\n", sender, receiver);
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.throttleBuffer = layout.throttleBuffer();
+        this.out = logger;
+        this.verbose = verbose;
     }
 
     int process()
@@ -102,9 +112,17 @@ public final class Loggable implements AutoCloseable
         final String sourceName = begin.source().asString();
         final long sourceRef = begin.sourceRef();
         final long correlationId = begin.correlationId();
+        OctetsFW extension = begin.extension();
 
-        System.out.println(format(streamFormat, streamId,
-                format("BEGIN \"%s\" [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId)));
+        out.printf(streamFormat, streamId, format("BEGIN \"%s\" [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId));
+
+        if (verbose && sourceName.startsWith("http"))
+        {
+            HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+
+            httpBeginEx.headers()
+                       .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+        }
     }
 
     private void handleData(
@@ -113,7 +131,7 @@ public final class Loggable implements AutoCloseable
         final long streamId = data.streamId();
         final int length = data.length();
 
-        System.out.println(format(streamFormat, streamId, format("DATA [%d]", length)));
+        out.printf(format(streamFormat, streamId, format("DATA [%d]", length)));
     }
 
     private void handleEnd(
@@ -121,7 +139,7 @@ public final class Loggable implements AutoCloseable
     {
         final long streamId = end.streamId();
 
-        System.out.println(format(streamFormat, streamId, "END"));
+        out.printf(format(streamFormat, streamId, "END"));
     }
 
     private void handleAbort(
@@ -129,7 +147,7 @@ public final class Loggable implements AutoCloseable
     {
         final long streamId = abort.streamId();
 
-        System.out.println(format(streamFormat, streamId, "ABORT"));
+        out.printf(format(streamFormat, streamId, "ABORT"));
     }
 
     private void handleThrottle(
@@ -156,7 +174,7 @@ public final class Loggable implements AutoCloseable
     {
         final long streamId = reset.streamId();
 
-        System.out.println(format(throttleFormat, streamId, "RESET"));
+        out.printf(format(throttleFormat, streamId, "RESET"));
     }
 
     private void handleWindow(
@@ -166,6 +184,6 @@ public final class Loggable implements AutoCloseable
         final int update = window.update();
         final int frames = window.frames();
 
-        System.out.println(format(throttleFormat, streamId, format("WINDOW [%d] [%d]", update, frames)));
+        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d]", update, frames)));
     }
 }
