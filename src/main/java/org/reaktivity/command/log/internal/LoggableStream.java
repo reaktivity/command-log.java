@@ -112,9 +112,12 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = begin.source().asString();
         final long sourceRef = begin.sourceRef();
         final long correlationId = begin.correlationId();
+        final long authorization = begin.authorization();
+
         OctetsFW extension = begin.extension();
 
-        out.printf(streamFormat, streamId, format("BEGIN \"%s\" [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId));
+        out.printf(streamFormat, streamId,
+                   format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
 
         if (verbose && sourceName.startsWith("http"))
         {
@@ -130,24 +133,27 @@ public final class LoggableStream implements AutoCloseable
     {
         final long streamId = data.streamId();
         final int length = data.length();
+        final long authorization = data.authorization();
 
-        out.printf(format(streamFormat, streamId, format("DATA [%d]", length)));
+        out.printf(format(streamFormat, streamId, format("DATA [%d] [0x%016x]", length, authorization)));
     }
 
     private void handleEnd(
         final EndFW end)
     {
         final long streamId = end.streamId();
+        final long authorization = end.authorization();
 
-        out.printf(format(streamFormat, streamId, "END"));
+        out.printf(format(streamFormat, streamId, format("END [0x%016x]", authorization)));
     }
 
     private void handleAbort(
         final AbortFW abort)
     {
         final long streamId = abort.streamId();
+        final long authorization = abort.authorization();
 
-        out.printf(format(streamFormat, streamId, "ABORT"));
+        out.printf(format(streamFormat, streamId, format("ABORT [0x%016x]", authorization)));
     }
 
     private void handleThrottle(
