@@ -18,5 +18,5 @@ package org.reaktivity.command.log.internal;
 @FunctionalInterface
 public interface Logger
 {
-    void printf(String format, Object ... args);
+    void printf(String format, Object... args);
 }
