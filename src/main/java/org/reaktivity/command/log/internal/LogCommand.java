@@ -37,7 +37,6 @@ public final class LogCommand
         options.addOption(builder("t").hasArg().required(false).longOpt("type").desc("streams* | counters").build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
-        options.addOption(builder("D").hasArgs().desc("define property").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
@@ -50,14 +49,12 @@ public final class LogCommand
         {
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
-            String[] defines = cmdline.getOptionValues('D');
             String type = cmdline.getOptionValue("type", "streams");
 
             Properties properties = new Properties();
-            setDefinedProperties(properties, defines);
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
 
-            final Configuration config = new Configuration(properties);
+            final Configuration config = new LogCommandConfiguration(properties);
 
             if ("streams".equals(type))
             {
@@ -66,21 +63,6 @@ public final class LogCommand
             else if ("counters".equals(type))
             {
                 new LogCountersCommand(config, System.out::printf, verbose).invoke();
-            }
-        }
-    }
-
-    private static void setDefinedProperties(
-        Properties properties,
-        String[] defines)
-    {
-        if (defines != null)
-        {
-            for (int i=0; i < defines.length; i += 2)
-            {
-                String name = defines[i];
-                String value = defines[i+1];
-                properties.setProperty(name, value);
             }
         }
     }
