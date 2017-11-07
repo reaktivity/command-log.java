@@ -37,8 +37,10 @@ public final class LogCommand
         options.addOption(builder("t").hasArg().required(false).longOpt("type").desc("streams* | counters").build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
+        options.addOption(builder("bc").longOpt("bufferCheck").desc("buffer capacity check").build());
 
         CommandLine cmdline = parser.parse(options, args);
+
 
         if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
         {
@@ -55,6 +57,12 @@ public final class LogCommand
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
 
             final Configuration config = new LogCommandConfiguration(properties);
+
+            if(cmdline.hasOption("bufferCheck"))
+            {
+                new LogBufferCapacityCommand(config, System.out::printf, verbose).invoke();
+                return;
+            }
 
             if ("streams".equals(type))
             {
