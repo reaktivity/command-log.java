@@ -58,7 +58,7 @@ public final class LogCommand
 
             final Configuration config = new LogCommandConfiguration(properties);
 
-            if(cmdline.hasOption("bufferCheck"))
+            if (cmdline.hasOption("bufferCheck"))
             {
                 new LogBufferCapacityCommand(config, System.out::printf, verbose).invoke();
                 return;
