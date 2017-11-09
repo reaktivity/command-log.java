@@ -37,32 +37,29 @@ public final class LogCommand
         options.addOption(builder("t").hasArg().required(false).longOpt("type").desc("streams* | counters").build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
-        options.addOption(builder("bc").longOpt("bufferCheck").desc("buffer capacity check").build());
+        options.addOption(builder("qd").longOpt("queue-depths").desc("display queue depths").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
+        boolean verbose = cmdline.hasOption("verbose");
+        Properties properties = new Properties();
+        String directory = cmdline.getOptionValue("directory");
+        properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
+
+        final Configuration config = new LogCommandConfiguration(properties);
 
         if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
         {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("log", options);
         }
+        else if (cmdline.hasOption("queue-depths"))
+        {
+            new LogQueueDepthCommand(config, System.out::printf, verbose).invoke();
+        }
         else
         {
-            String directory = cmdline.getOptionValue("directory");
-            boolean verbose = cmdline.hasOption("verbose");
             String type = cmdline.getOptionValue("type", "streams");
-
-            Properties properties = new Properties();
-            properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
-
-            final Configuration config = new LogCommandConfiguration(properties);
-
-            if (cmdline.hasOption("bufferCheck"))
-            {
-                new LogBufferCapacityCommand(config, System.out::printf, verbose).invoke();
-                return;
-            }
 
             if ("streams".equals(type))
             {

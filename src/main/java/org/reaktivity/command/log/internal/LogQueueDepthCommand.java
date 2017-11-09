@@ -29,7 +29,7 @@ import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.HEAD_POSITIO
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENGTH;
 
-public final class LogBufferCapacityCommand
+public final class LogQueueDepthCommand
 {
     private final Path directory;
     private final boolean verbose;
@@ -38,9 +38,7 @@ public final class LogBufferCapacityCommand
     private final long streamsCapacity;
     private final long throttleCapacity;
 
-    private final String logformat = "%s readPointer=%d writePointer=%d capacity=%d";
-
-    public LogBufferCapacityCommand(
+    public LogQueueDepthCommand(
             Configuration config,
             Logger out,
             boolean verbose)
@@ -69,22 +67,24 @@ public final class LogBufferCapacityCommand
         }
     }
 
-    private void bufferCapacity(
+    private void displayQueueDepth(
             Path path)
     {
-        StreamsLayout layout = new StreamsLayout.Builder()
+        try (StreamsLayout layout = new StreamsLayout.Builder()
                 .path(path)
                 .streamsCapacity(streamsCapacity)
                 .throttleCapacity(throttleCapacity)
                 .readonly(true)
                 .build();
-        DirectBuffer buffer = layout.streamsBuffer().buffer();
-        System.out.println(String.format(
-                logformat,
-                directory.relativize(path),
-                buffer.getLong(buffer.capacity()  - TRAILER_LENGTH + HEAD_POSITION_OFFSET),
-                buffer.getLong(buffer.capacity() - TRAILER_LENGTH + TAIL_POSITION_OFFSET),
-                buffer.capacity()));
+        )
+        {
+            DirectBuffer buffer = layout.streamsBuffer().buffer();
+
+            System.out.printf("%s readPointer=%d writePointer=%d \n",
+                    directory.relativize(path),
+                    layout.streamsBuffer().consumerPosition(buffer),
+                    layout.streamsBuffer().producerPosition(buffer));
+        }
     }
 
     void invoke()
@@ -93,7 +93,7 @@ public final class LogBufferCapacityCommand
         {
             files.filter(this::isStreamsFile)
                     .peek(this::onDiscovered)
-                    .forEach(this::bufferCapacity);
+                    .forEach(this::displayQueueDepth);
         }
         catch (IOException ex)
         {
