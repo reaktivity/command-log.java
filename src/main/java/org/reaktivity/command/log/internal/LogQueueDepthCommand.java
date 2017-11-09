@@ -25,10 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.HEAD_POSITION_OFFSET;
-import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
-import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENGTH;
-
 public final class LogQueueDepthCommand
 {
     private final Path directory;
