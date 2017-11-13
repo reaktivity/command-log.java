@@ -21,7 +21,11 @@ import static org.agrona.concurrent.ringbuffer.RecordDescriptor.ALIGNMENT;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.messageTypeId;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.recordLength;
-import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.*;
+import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.HEAD_POSITION_OFFSET;
+import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENGTH;
+import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacity;
+import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
+
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -60,13 +64,13 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
     }
 
     @Override
-    public long producerPosition(DirectBuffer buffer)
+    public long producerPosition()
     {
         return buffer.getLong(buffer.capacity() - TRAILER_LENGTH + TAIL_POSITION_OFFSET);
     }
 
     @Override
-    public long consumerPosition(DirectBuffer buffer)
+    public long consumerPosition()
     {
         return buffer.getLong(buffer.capacity()  - TRAILER_LENGTH + HEAD_POSITION_OFFSET);
     }

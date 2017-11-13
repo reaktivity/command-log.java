@@ -15,9 +15,9 @@
  */
 package org.reaktivity.command.log.internal;
 
-import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
+import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.nukleus.Configuration;
 
 import java.io.IOException;
@@ -74,12 +74,16 @@ public final class LogQueueDepthCommand
                 .build();
         )
         {
-            DirectBuffer buffer = layout.streamsBuffer().buffer();
+            RingBufferSpy streamsBuffer = layout.streamsBuffer();
+            RingBufferSpy throttleBuffer = layout.throttleBuffer();
 
-            System.out.printf("%s readPointer=%d writePointer=%d \n",
-                    directory.relativize(path),
-                    layout.streamsBuffer().consumerPosition(buffer),
-                    layout.streamsBuffer().producerPosition(buffer));
+            out.printf("streamsReadPointer=%d streamsWritePointer=%d streamsQueueDepth=%d throttleReadPointer=%d throttleWritePointer=%d throttleQueue=%d \n",
+                    streamsBuffer.consumerPosition(),
+                    streamsBuffer.producerPosition(),
+                    streamsBuffer.producerPosition() - streamsBuffer.consumerPosition(),
+                    throttleBuffer.consumerPosition(),
+                    throttleBuffer.producerPosition(),
+                    throttleBuffer.producerPosition() - throttleBuffer.consumerPosition());
         }
     }
 

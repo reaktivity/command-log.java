@@ -23,8 +23,8 @@ public interface RingBufferSpy
     int spy(MessageHandler handler);
     int spy(MessageHandler handler, int messageCountLimit);
 
-    long producerPosition(DirectBuffer buffer);
-    long consumerPosition(DirectBuffer buffer);
+    long producerPosition();
+    long consumerPosition();
 
     DirectBuffer buffer();
 }
