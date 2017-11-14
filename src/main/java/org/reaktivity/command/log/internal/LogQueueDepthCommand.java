@@ -77,10 +77,11 @@ public final class LogQueueDepthCommand
             RingBufferSpy streamsBuffer = layout.streamsBuffer();
             RingBufferSpy throttleBuffer = layout.throttleBuffer();
 
-            out.printf("streamsReadPointer=%d streamsWritePointer=%d streamsQueueDepth=%d throttleReadPointer=%d throttleWritePointer=%d throttleQueue=%d \n",
+            out.printf("streamsReadPointer=%d streamsWritePointer=%d streamsQueueDepth=%d  ",
                     streamsBuffer.consumerPosition(),
                     streamsBuffer.producerPosition(),
-                    streamsBuffer.producerPosition() - streamsBuffer.consumerPosition(),
+                    streamsBuffer.producerPosition() - streamsBuffer.consumerPosition());
+            out.printf("throttleReadPointer=%d throttleWritePointer=%d throttleQueue=%d \n ",
                     throttleBuffer.consumerPosition(),
                     throttleBuffer.producerPosition(),
                     throttleBuffer.producerPosition() - throttleBuffer.consumerPosition());
