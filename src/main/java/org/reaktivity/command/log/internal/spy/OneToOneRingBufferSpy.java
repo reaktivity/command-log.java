@@ -72,7 +72,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
     @Override
     public long consumerPosition()
     {
-        return buffer.getLong(buffer.capacity()  - TRAILER_LENGTH + HEAD_POSITION_OFFSET);
+        return buffer.getLong(buffer.capacity() - TRAILER_LENGTH + HEAD_POSITION_OFFSET);
     }
 
     @Override
