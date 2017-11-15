@@ -77,15 +77,21 @@ public final class LogQueueDepthCommand
             RingBufferSpy streamsBuffer = layout.streamsBuffer();
             RingBufferSpy throttleBuffer = layout.throttleBuffer();
 
-            out.printf("streamsReadPointer=%d streamsWritePointer=%d streamsQueueDepth=%d  ",
-                    streamsBuffer.consumerPosition(),
-                    streamsBuffer.producerPosition(),
-                    streamsBuffer.producerPosition() - streamsBuffer.consumerPosition());
-            out.printf("throttleReadPointer=%d throttleWritePointer=%d throttleQueue=%d \n ",
-                    throttleBuffer.consumerPosition(),
-                    throttleBuffer.producerPosition(),
-                    throttleBuffer.producerPosition() - throttleBuffer.consumerPosition());
+            Path owner = path.getName(path.getNameCount() - 1);
+            displayQueueDepth(String.format("%s.streams", owner), streamsBuffer);
+            displayQueueDepth(String.format("%s.throttle", owner), throttleBuffer);
         }
+    }
+
+    private void displayQueueDepth(
+            String name,
+            RingBufferSpy buffer)
+    {
+        // read consumer position first for pessimistic queue depth
+        long consumerAt = buffer.consumerPosition();
+        long producerAt = buffer.producerPosition();
+
+        out.printf("%s: queueDepth=%d writePointer=%d readPointer=%d\n ",name, producerAt - consumerAt, producerAt, consumerAt);
     }
 
     void invoke()
