@@ -35,9 +35,9 @@ public final class LogQueueDepthCommand
     private final long throttleCapacity;
 
     public LogQueueDepthCommand(
-            Configuration config,
-            Logger out,
-            boolean verbose)
+        Configuration config,
+        Logger out,
+        boolean verbose)
     {
         this.directory = config.directory();
         this.out = out;
@@ -47,7 +47,7 @@ public final class LogQueueDepthCommand
     }
 
     private boolean isStreamsFile(
-            Path path)
+        Path path)
     {
         return path.getNameCount() - directory.getNameCount() == 3 &&
                 "streams".equals(path.getName(path.getNameCount() - 2).toString()) &&
@@ -55,7 +55,7 @@ public final class LogQueueDepthCommand
     }
 
     private void onDiscovered(
-            Path path)
+        Path path)
     {
         if (verbose)
         {
@@ -64,7 +64,7 @@ public final class LogQueueDepthCommand
     }
 
     private void displayQueueDepth(
-            Path path)
+        Path path)
     {
         try (StreamsLayout layout = new StreamsLayout.Builder()
                 .path(path)
@@ -74,24 +74,22 @@ public final class LogQueueDepthCommand
                 .build();
         )
         {
-            RingBufferSpy streamsBuffer = layout.streamsBuffer();
-            RingBufferSpy throttleBuffer = layout.throttleBuffer();
-
-            Path owner = path.getName(path.getNameCount() - 1);
-            displayQueueDepth(String.format("%s.streams", owner), streamsBuffer);
-            displayQueueDepth(String.format("%s.throttle", owner), throttleBuffer);
+            String name = path.getName(path.getNameCount() - 1).toString();
+            displayQueueDepth(name, "streams", layout.streamsBuffer());
+            displayQueueDepth(name, "throttle", layout.throttleBuffer());
         }
     }
 
     private void displayQueueDepth(
-            String name,
-            RingBufferSpy buffer)
+        String name,
+        String type,
+        RingBufferSpy buffer)
     {
         // read consumer position first for pessimistic queue depth
         long consumerAt = buffer.consumerPosition();
         long producerAt = buffer.producerPosition();
 
-        out.printf("%s: queueDepth=%d writePointer=%d readPointer=%d\n ",name, producerAt - consumerAt, producerAt, consumerAt);
+        out.printf("%s.%s %d\n ",name, type, producerAt - consumerAt);
     }
 
     void invoke()
