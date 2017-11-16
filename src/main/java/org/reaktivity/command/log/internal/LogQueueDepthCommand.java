@@ -89,7 +89,7 @@ public final class LogQueueDepthCommand
         long consumerAt = buffer.consumerPosition();
         long producerAt = buffer.producerPosition();
 
-        out.printf("%s.%s %d\n ",name, type, producerAt - consumerAt);
+        out.printf("%s.%s %d\n ", name, type, producerAt - consumerAt);
     }
 
     void invoke()
