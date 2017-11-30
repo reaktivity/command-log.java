@@ -34,7 +34,7 @@ public final class LogCommand
 
         Options options = new Options();
         options.addOption(builder("h").longOpt("help").desc("print this message").build());
-        options.addOption(builder("t").hasArg().required(false).longOpt("type").desc("streams* | counters").build());
+        options.addOption(builder("t").hasArg().required(false).longOpt("type").desc("streams* | counters | queues").build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
 
@@ -63,6 +63,10 @@ public final class LogCommand
             else if ("counters".equals(type))
             {
                 new LogCountersCommand(config, System.out::printf, verbose).invoke();
+            }
+            else if ("queues".equals(type))
+            {
+                new LogQueueDepthCommand(config, System.out::printf, verbose).invoke();
             }
         }
     }
