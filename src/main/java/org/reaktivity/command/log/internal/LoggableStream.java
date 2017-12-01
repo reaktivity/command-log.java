@@ -187,9 +187,9 @@ public final class LoggableStream implements AutoCloseable
         final WindowFW window)
     {
         final long streamId = window.streamId();
-        final int update = window.update();
-        final int frames = window.frames();
+        final int credit = window.credit();
+        final int padding = window.padding();
 
-        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d]", update, frames)));
+        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d]", credit, padding)));
     }
 }
