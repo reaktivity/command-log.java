@@ -44,17 +44,21 @@ public final class LogStreamsCommand
     private final boolean verbose;
     private final long streamsCapacity;
     private final long throttleCapacity;
+    private final boolean continuous;
     private final Logger out;
+
 
     LogStreamsCommand(
         Configuration config,
         Logger out,
-        boolean verbose)
+        boolean verbose,
+        boolean continuous)
     {
         this.directory = config.directory();
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
+        this.continuous = continuous;
         this.out = out;
     }
 
@@ -103,9 +107,12 @@ public final class LogStreamsCommand
 
             final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
 
-            while (true)
+            final int exitWorkCount = continuous ? -1 : 0;
+
+            int workCount;
+            do
             {
-                int workCount = 0;
+                workCount = 0;
 
                 for (int i=0; i < loggables.length; i++)
                 {
@@ -113,7 +120,8 @@ public final class LogStreamsCommand
                 }
 
                 idleStrategy.idle(workCount);
-            }
+
+            } while (workCount != exitWorkCount);
         }
         catch (IOException ex)
         {
