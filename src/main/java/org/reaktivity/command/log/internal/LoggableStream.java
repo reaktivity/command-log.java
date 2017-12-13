@@ -133,9 +133,10 @@ public final class LoggableStream implements AutoCloseable
     {
         final long streamId = data.streamId();
         final int length = data.length();
+        final int padding = data.padding();
         final long authorization = data.authorization();
 
-        out.printf(format(streamFormat, streamId, format("DATA [%d] [0x%016x]", length, authorization)));
+        out.printf(format(streamFormat, streamId, format("DATA [%d] [%d] [0x%016x]", length, padding, authorization)));
     }
 
     private void handleEnd(
@@ -189,7 +190,8 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = window.streamId();
         final int credit = window.credit();
         final int padding = window.padding();
+        final long groupId = window.groupId();
 
-        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d]", credit, padding)));
+        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d] [0x%016x]", credit, padding, groupId)));
     }
 }
