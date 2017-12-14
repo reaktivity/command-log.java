@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.4</version>
+  <version>0.5</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -43,10 +43,10 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <nukleus.version>0.11</nukleus.version>
+    <nukleus.version>0.13</nukleus.version>
     <nukleus.plugin.version>0.13</nukleus.plugin.version>
-    <nukleus.spec.version>0.12</nukleus.spec.version>
-    <nukleus.http.spec.version>0.38</nukleus.http.spec.version>
+    <nukleus.spec.version>0.13</nukleus.spec.version>
+    <nukleus.http.spec.version>0.43</nukleus.http.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
