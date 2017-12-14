@@ -192,6 +192,6 @@ public final class LoggableStream implements AutoCloseable
         final int padding = window.padding();
         final long groupId = window.groupId();
 
-        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d] [0x%016x]", credit, padding, groupId)));
+        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
     }
 }
