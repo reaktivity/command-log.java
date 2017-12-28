@@ -21,15 +21,15 @@ import org.agrona.MutableDirectBuffer;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.OctetsFW;
+import org.reaktivity.command.log.internal.types.TcpAddressFW;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
 import org.reaktivity.command.log.internal.types.stream.EndFW;
 import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
+import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
-import org.reaktivity.specification.tcp.internal.types.TcpAddressFW;
-import org.reaktivity.specification.tcp.internal.types.stream.TcpBeginExFW;
 
 public final class LoggableStream implements AutoCloseable
 {
@@ -125,16 +125,18 @@ public final class LoggableStream implements AutoCloseable
         out.printf(streamFormat, streamId,
                    format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
 
+        final int offset = extension.offset();
+        final int limit = extension.limit();
         if (verbose && sourceName.startsWith("http"))
         {
-            HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+            HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), offset, limit);
 
             httpBeginEx.headers()
                        .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
         }
-        if (verbose && targetName.equals("tcp"))
+        if (verbose && offset - limit != 0  && targetName.equals("tcp"))
         {
-            TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+            TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), offset, limit);
 
             final TcpAddressFW remoteAddress = tcpBeginEx.remoteAddress();
             int kind = remoteAddress.kind();
