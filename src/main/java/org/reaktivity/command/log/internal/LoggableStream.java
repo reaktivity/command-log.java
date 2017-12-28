@@ -28,6 +28,8 @@ import org.reaktivity.command.log.internal.types.stream.EndFW;
 import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
+import org.reaktivity.specification.tcp.internal.types.TcpAddressFW;
+import org.reaktivity.specification.tcp.internal.types.stream.TcpBeginExFW;
 
 public final class LoggableStream implements AutoCloseable
 {
@@ -40,6 +42,7 @@ public final class LoggableStream implements AutoCloseable
     private final WindowFW windowRO = new WindowFW();
 
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final TcpBeginExFW tcpBeginExRO = new TcpBeginExFW();
 
     private final String streamFormat;
     private final String throttleFormat;
@@ -48,6 +51,7 @@ public final class LoggableStream implements AutoCloseable
     private final RingBufferSpy throttleBuffer;
     private final Logger out;
     private final boolean verbose;
+    private final String receiver;
 
     LoggableStream(
         String receiver,
@@ -59,6 +63,7 @@ public final class LoggableStream implements AutoCloseable
         this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s\n", sender, receiver);
         this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s\n", sender, receiver);
 
+        this.receiver = receiver;
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.throttleBuffer = layout.throttleBuffer();
@@ -111,6 +116,7 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = begin.streamId();
         final String sourceName = begin.source().asString();
         final long sourceRef = begin.sourceRef();
+        final String targetName = receiver;
         final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
 
@@ -125,6 +131,30 @@ public final class LoggableStream implements AutoCloseable
 
             httpBeginEx.headers()
                        .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+        }
+        if (verbose && targetName.equals("tcp"))
+        {
+            TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+
+            final TcpAddressFW remoteAddress = tcpBeginEx.remoteAddress();
+            int kind = remoteAddress.kind();
+
+            StringBuilder address = new StringBuilder();
+            switch (kind)
+            {
+                case TcpAddressFW.KIND_HOST:
+                    address.append(remoteAddress.host());
+                    break;
+                case TcpAddressFW.KIND_IPV4_ADDRESS:
+                    address.append(remoteAddress.ipv4Address());
+                    break;
+                case TcpAddressFW.KIND_IPV6_ADDRESS:
+                    address.append(remoteAddress.ipv6Address());
+                    break;
+            }
+            address.append(":");
+            address.append(tcpBeginEx.remotePort());
+            out.printf("remoteAddress: %s\n", address);
         }
     }
 
