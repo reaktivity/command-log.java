@@ -145,7 +145,7 @@ public final class LoggableStream implements AutoCloseable
             switch (kind)
             {
                 case TcpAddressFW.KIND_HOST:
-                    address.append(remoteAddress.host());
+                    address.append(remoteAddress.host().asString());
                     break;
                 case TcpAddressFW.KIND_IPV4_ADDRESS:
                     address.append(remoteAddress.ipv4Address());
