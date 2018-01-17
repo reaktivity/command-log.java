@@ -44,9 +44,9 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <nukleus.version>0.13</nukleus.version>
-    <nukleus.plugin.version>0.13</nukleus.plugin.version>
-    <nukleus.spec.version>0.13</nukleus.spec.version>
-    <nukleus.http.spec.version>0.43</nukleus.http.spec.version>
+    <nukleus.plugin.version>0.23</nukleus.plugin.version>
+    <nukleus.spec.version>develop-SNAPSHOT</nukleus.spec.version>
+    <nukleus.http.spec.version>develop-SNAPSHOT</nukleus.http.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
