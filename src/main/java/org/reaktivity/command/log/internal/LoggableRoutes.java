@@ -15,6 +15,8 @@
  */
 package org.reaktivity.command.log.internal;
 
+import static java.lang.String.format;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.agrona.DirectBuffer;
@@ -31,7 +33,6 @@ public final class LoggableRoutes implements AutoCloseable
 {
     private final RoutesLayout layout;
     private final MutableDirectBuffer routesBuffer;
-    private final String routesFormat;
     private final Logger out;
     private final IdleStrategy idleStrategy;
     private final RouteTableFW routeTableRO;
@@ -40,6 +41,7 @@ public final class LoggableRoutes implements AutoCloseable
     private final UnsafeBuffer copyBufFW;
     private final RouteFW routeRO;
     private final LongHashSet loggedRoutes;
+    private final String nukleusName;
 
     LoggableRoutes(
         RoutesLayout layout,
@@ -48,8 +50,8 @@ public final class LoggableRoutes implements AutoCloseable
         IdleStrategy idleStrategy)
     {
         this.layout = layout;
+        this.nukleusName  = nukleusName;
         this.routesBuffer = layout.routesBuffer();
-        this.routesFormat = String.format("[%s]\t%%s\n", nukleusName);
         this.out = logger;
         this.idleStrategy = idleStrategy;
         this.routeTableRO = new RouteTableFW();
@@ -90,7 +92,7 @@ public final class LoggableRoutes implements AutoCloseable
             final DirectBuffer buffer = routeOctets.buffer();
             final int offset = routeOctets.offset();
             final int routeSize = (int) e.routeSize();
-            RouteFW route = routeRO.wrap(buffer, offset, routeSize);
+            RouteFW route = routeRO.wrap(buffer, offset, offset + routeSize);
 
             final long correlationId = route.correlationId();
             final String role = route.role().toString();
@@ -99,15 +101,13 @@ public final class LoggableRoutes implements AutoCloseable
             final String target = route.target().asString();
             final long targetRef = route.targetRef();
             final long authorization = route.authorization();
-//            final OctetsFW extension = route.extension(); TODO special logging for extension
             thisIterationRoutes.add(correlationId);
 
             if (!loggedRoutes.contains(correlationId))
             {
                 workCnt.incrementAndGet();
-                out.printf(routesFormat,
-                        String.format("%d, %s, %s, %d, %s, %d, %d, %s",
-                                correlationId,
+                out.printf(format("%-15s %10s %20s [0x%016X] %20s [0x%016X] [0x%016X]\n",
+                                format("%s#%d", nukleusName, correlationId),
                                 role,
                                 source,
                                 sourceRef,
@@ -122,10 +122,10 @@ public final class LoggableRoutes implements AutoCloseable
         LongHashSet removedRoutes = loggedRoutes.difference(thisIterationRoutes);
         if (removedRoutes != null)
         {
-            removedRoutes.stream().forEach(r ->
+            removedRoutes.stream().forEach(correlationId ->
             {
-                out.printf(routesFormat, String.format("Unrouted %s", r));
-                loggedRoutes.remove(r);
+                out.printf(format("Unrouted %s#%d\n", nukleusName, correlationId));
+                loggedRoutes.remove(correlationId);
             });
         }
         return workCnt.get();
