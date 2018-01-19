@@ -44,7 +44,7 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <nukleus.version>0.13</nukleus.version>
-    <nukleus.plugin.version>0.23</nukleus.plugin.version>
+    <nukleus.plugin.version>develop-SNAPSHOT</nukleus.plugin.version>
     <nukleus.spec.version>develop-SNAPSHOT</nukleus.spec.version>
     <nukleus.http.spec.version>develop-SNAPSHOT</nukleus.http.spec.version>
 
