@@ -37,7 +37,7 @@ public final class LogCommand
         options.addOption(builder("t").hasArg()
                                       .required(false)
                                       .longOpt("type")
-                                      .desc("streams* | streams-nowait | counters | queues | routes | routing")
+                                      .desc("streams* | streams-nowait | counters | queues | routes")
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
@@ -72,9 +72,9 @@ public final class LogCommand
             {
                 new LogQueueDepthCommand(config, System.out::printf, verbose).invoke();
             }
-            else if ("routes".equals(type) || "routing".equals(type))
+            else if ("routes".equals(type))
             {
-                new LogRoutesCommand(config, System.out::printf, verbose, "routing".equals(type)).invoke();
+                new LogRoutesCommand(config, System.out::printf, verbose).invoke();
             }
         }
     }

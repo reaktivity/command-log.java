@@ -43,7 +43,6 @@ public class LogRoutesCommand
     private final Path directory;
     private final boolean verbose;
     private final int routesCapacity;
-    private final boolean continuous;
     private final Logger out;
     private final ConfigurationUtil configUtil = new ConfigurationUtil();
     private final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
@@ -52,14 +51,12 @@ public class LogRoutesCommand
     LogRoutesCommand(
         Configuration config,
         Logger out,
-        boolean verbose,
-        boolean continuous)
+        boolean verbose)
     {
         this.directory = config.directory();
         this.verbose = verbose;
         this.routesCapacity = configUtil.getInteger(ROUTES_BUFFER_CAPACITY_PROPERTY_NAME, ROUTES_BUFFER_CAPACITY_DEFAULT);
         this.out = out;
-        this.continuous = continuous;
     }
 
     private boolean isRoutesFile(
@@ -97,26 +94,17 @@ public class LogRoutesCommand
     {
         try (Stream<Path> files = Files.walk(directory, 2))
         {
-            LoggableRoutes[] loggables = files.filter(this::isRoutesFile)
-                 .peek(this::onDiscovered)
-                 .map(this::newLoggable)
-                 .collect(toList())
-                 .toArray(new LoggableRoutes[0]);
+        LoggableRoutes[] loggables = files.filter(this::isRoutesFile)
+             .peek(this::onDiscovered)
+             .map(this::newLoggable)
+             .collect(toList())
+             .toArray(new LoggableRoutes[0]);
 
-            final int exitWorkCount = continuous ? -1 : 0;
-            int successCount;
-            do
+            for (int i=0; i < loggables.length; i++)
             {
-                successCount = 0;
+                loggables[i].process();
+            }
 
-                for (int i=0; i < loggables.length; i++)
-                {
-                    successCount += loggables[i].process();
-                }
-
-                idleStrategy.idle(successCount);
-
-            } while (successCount != exitWorkCount);
         }
         catch (IOException ex)
         {
