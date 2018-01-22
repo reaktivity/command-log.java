@@ -44,8 +44,8 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <nukleus.version>0.13</nukleus.version>
-    <nukleus.plugin.version>0.19</nukleus.plugin.version>
-    <nukleus.spec.version>0.13</nukleus.spec.version>
+    <nukleus.plugin.version>0.24</nukleus.plugin.version>
+    <nukleus.spec.version>0.15</nukleus.spec.version>
     <nukleus.http.spec.version>0.43</nukleus.http.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
@@ -84,7 +84,7 @@
         <artifactId>nukleus-maven-plugin</artifactId>
         <version>${nukleus.plugin.version}</version>
         <configuration>
-          <scopeNames>core::stream http::stream</scopeNames>
+          <scopeNames>core http::stream</scopeNames>
           <packageName>org.reaktivity.command.log.internal.types</packageName>
         </configuration>
         <executions>
