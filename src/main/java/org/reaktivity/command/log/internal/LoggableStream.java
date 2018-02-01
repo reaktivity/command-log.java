@@ -122,13 +122,13 @@ public final class LoggableStream implements AutoCloseable
         if (verbose && sourceName.startsWith("http"))
         {
             final long ref = (sourceRef != 0) ? sourceRef : correlationId;
-            if(!((ref % 2 == 0) && sourceName == "http"))
+            if(!((ref % 2 == 0) && sourceName.equals("http")) && !((ref % 2 != 0) && sourceName.equals("http2")))
             {
-                HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-                httpBeginEx.headers()
-                    .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
-            }
+                    HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                    httpBeginEx.headers()
+                            .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
 
+            }
         }
     }
 
