@@ -136,10 +136,17 @@ public final class LoggableStream implements AutoCloseable
             final boolean isHttpClientReply = !initial && isClient.test(typedRef) && isHttp.test(sourceName);
             final boolean isHttpServerInitial = initial && isServer.test(typedRef) && isHttp.test(sourceName);
             final boolean isHttpServerReply = !initial && isServer.test(typedRef) && isHttp.test(targetName);
-            final boolean isHttpProxyInitial = initial && isProxy.test(typedRef) && (isHttp.test(sourceName) || isHttp.test(targetName));
-            final boolean isHttpProxyReply = !initial && isProxy.test(typedRef) && (isHttp.test(sourceName) || isHttp.test(targetName));
+            final boolean isHttpProxyInitial = initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
+                    || isHttp.test(targetName));
+            final boolean isHttpProxyReply = !initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
+                    || isHttp.test(targetName));
 
-            if (isHttpClientInitial || isHttpServerReply || isHttpClientReply || isHttpServerInitial || isHttpProxyInitial | isHttpProxyReply)
+            if (isHttpClientInitial
+                    || isHttpServerReply
+                    || isHttpClientReply
+                    || isHttpServerInitial
+                    || isHttpProxyInitial
+                    | isHttpProxyReply)
             {
                 HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
                 httpBeginEx.headers()
