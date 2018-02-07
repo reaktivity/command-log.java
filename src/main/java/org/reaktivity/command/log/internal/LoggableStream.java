@@ -17,30 +17,30 @@ package org.reaktivity.command.log.internal;
 
 import static java.lang.String.format;
 
-import org.agrona.MutableDirectBuffer;
-import org.reaktivity.command.log.internal.layouts.StreamsLayout;
-import org.reaktivity.command.log.internal.spy.RingBufferSpy;
-import org.reaktivity.command.log.internal.types.OctetsFW;
-import org.reaktivity.command.log.internal.types.stream.AbortFW;
-import org.reaktivity.command.log.internal.types.stream.BeginFW;
-import org.reaktivity.command.log.internal.types.stream.DataFW;
-import org.reaktivity.command.log.internal.types.stream.EndFW;
-import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
-import org.reaktivity.command.log.internal.types.stream.ResetFW;
-import org.reaktivity.command.log.internal.types.stream.WindowFW;
-
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
+import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.MutableInteger;
+import org.reaktivity.command.log.internal.layouts.StreamsLayout;
+import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.types.ListFW;
+import org.reaktivity.command.log.internal.types.OctetsFW;
+import org.reaktivity.command.log.internal.types.stream.AckFW;
+import org.reaktivity.command.log.internal.types.stream.BeginFW;
+import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
+import org.reaktivity.command.log.internal.types.stream.RegionFW;
+import org.reaktivity.command.log.internal.types.stream.TransferFW;
+
 public final class LoggableStream implements AutoCloseable
 {
-    private final BeginFW beginRO = new BeginFW();
-    private final DataFW dataRO = new DataFW();
-    private final EndFW endRO = new EndFW();
-    private final AbortFW abortRO = new AbortFW();
+    private static final String BEGIN_FORMAT    = "BEGIN    [0x%08x] [0x%016x] [0x%016x] [0x%016x] \"%s\"";
+    private static final String TRANSFER_FORMAT = "TRANSFER [0x%08x] [%d] [0x%016x]";
+    private static final String ACK_FORMAT      = "ACK      [0x%08x] [%d]";
 
-    private final ResetFW resetRO = new ResetFW();
-    private final WindowFW windowRO = new WindowFW();
+    private final BeginFW beginRO = new BeginFW();
+    private final TransferFW transferRO = new TransferFW();
+    private final AckFW ackRO = new AckFW();
 
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
@@ -95,17 +95,9 @@ public final class LoggableStream implements AutoCloseable
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
             handleBegin(begin);
             break;
-        case DataFW.TYPE_ID:
-            final DataFW data = dataRO.wrap(buffer, index, index + length);
-            handleData(data);
-            break;
-        case EndFW.TYPE_ID:
-            final EndFW end = endRO.wrap(buffer, index, index + length);
-            handleEnd(end);
-            break;
-        case AbortFW.TYPE_ID:
-            final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-            handleAbort(abort);
+        case TransferFW.TYPE_ID:
+            final TransferFW transfer = transferRO.wrap(buffer, index, index + length);
+            handleTransfer(transfer);
             break;
         }
     }
@@ -118,11 +110,11 @@ public final class LoggableStream implements AutoCloseable
         final long sourceRef = begin.sourceRef();
         final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
+        final int flags = begin.flags();
 
         OctetsFW extension = begin.extension();
 
-        out.printf(streamFormat, streamId,
-                   format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
+        out.printf(streamFormat, streamId, format(BEGIN_FORMAT, flags, sourceRef, correlationId, authorization, sourceName));
 
         if (verbose && sourceName.startsWith("http"))
         {
@@ -155,33 +147,18 @@ public final class LoggableStream implements AutoCloseable
         }
     }
 
-    private void handleData(
-        final DataFW data)
+    private void handleTransfer(
+        final TransferFW transfer)
     {
-        final long streamId = data.streamId();
-        final int length = data.length();
-        final int padding = data.padding();
-        final long authorization = data.authorization();
+        final long streamId = transfer.streamId();
+        final long authorization = transfer.authorization();
+        final int flags = transfer.flags();
+        final ListFW<RegionFW> regions = transfer.regions();
 
-        out.printf(format(streamFormat, streamId, format("DATA [%d] [%d] [0x%016x]", length, padding, authorization)));
-    }
+        final MutableInteger length = new MutableInteger();
+        regions.forEach(r -> length.value += r.length());
 
-    private void handleEnd(
-        final EndFW end)
-    {
-        final long streamId = end.streamId();
-        final long authorization = end.authorization();
-
-        out.printf(format(streamFormat, streamId, format("END [0x%016x]", authorization)));
-    }
-
-    private void handleAbort(
-        final AbortFW abort)
-    {
-        final long streamId = abort.streamId();
-        final long authorization = abort.authorization();
-
-        out.printf(format(streamFormat, streamId, format("ABORT [0x%016x]", authorization)));
+        out.printf(format(streamFormat, streamId, format(TRANSFER_FORMAT, flags, length.value, authorization)));
     }
 
     private void handleThrottle(
@@ -192,33 +169,23 @@ public final class LoggableStream implements AutoCloseable
     {
         switch (msgTypeId)
         {
-        case ResetFW.TYPE_ID:
-            final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-            handleReset(reset);
-            break;
-        case WindowFW.TYPE_ID:
-            final WindowFW window = windowRO.wrap(buffer, index, index + length);
-            handleWindow(window);
+        case AckFW.TYPE_ID:
+            final AckFW ack = ackRO.wrap(buffer, index, index + length);
+            handleAck(ack);
             break;
         }
     }
 
-    private void handleReset(
-        final ResetFW reset)
+    private void handleAck(
+        final AckFW ack)
     {
-        final long streamId = reset.streamId();
+        final long streamId = ack.streamId();
+        final int flags = ack.flags();
+        final ListFW<RegionFW> regions = ack.regions();
 
-        out.printf(format(throttleFormat, streamId, "RESET"));
-    }
+        final MutableInteger length = new MutableInteger();
+        regions.forEach(r -> length.value += r.length());
 
-    private void handleWindow(
-        final WindowFW window)
-    {
-        final long streamId = window.streamId();
-        final int credit = window.credit();
-        final int padding = window.padding();
-        final long groupId = window.groupId();
-
-        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
+        out.printf(format(throttleFormat, streamId, format(ACK_FORMAT, flags, length.value)));
     }
 }
