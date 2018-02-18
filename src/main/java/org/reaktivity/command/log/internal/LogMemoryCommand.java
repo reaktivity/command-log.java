@@ -84,19 +84,19 @@ public final class LogMemoryCommand
             out.printf("%s (%d, %d, %d)\n", name, minimumBlockSize, maximumBlockSize, sizeofBTree);
             out.printf("block\t\tcount\n");
         }
-        long allocated = 0L;
-        for (int index=0; index < orderCount; index++)
+        long memoryUsed = 0L;
+        for (int depth=0; depth < orderCount; depth++)
         {
-            int length = 1 << index;
+            int length = 1 << depth;
             int offset = length >> 2;
-            int order = orderCount - index - 1;
+            int order = orderCount - depth - 1;
             int block = minimumBlockSize << order;
             switch (length)
             {
             case 1:
                 final byte value1 = metadataBuffer.getByte(offset + BTREE_OFFSET);
                 final int bitCount1 = bitCount((value1 & 0x04) & ~((value1 >> 1) & 0x04));
-                allocated += bitCount1 * block;
+                memoryUsed += bitCount1 * block;
                 if (verbose)
                 {
                     out.printf("%d\t\t%d\n", block, bitCount1);
@@ -105,7 +105,7 @@ public final class LogMemoryCommand
             case 2:
                 final byte value2 = metadataBuffer.getByte(offset + BTREE_OFFSET);
                 final int bitCount2 = bitCount((value2 & 0x50) & ~(((value2 & 0xa0) >> 1) & 0x50));
-                allocated += bitCount2 * block;
+                memoryUsed += bitCount2 * block;
                 if (verbose)
                 {
                     out.printf("%d\t\t%d\n", block, bitCount2);
@@ -114,7 +114,7 @@ public final class LogMemoryCommand
             case 4:
                 final byte value4 = metadataBuffer.getByte(offset + BTREE_OFFSET);
                 final int bitCount4 = bitCount((value4 & 0x55) & ~(((value4 & 0xaa) >> 1) & 0x55));
-                allocated += bitCount4 * block;
+                memoryUsed += bitCount4 * block;
                 if (verbose)
                 {
                     out.printf("%d\t\t%d\n", block, bitCount4);
@@ -123,7 +123,7 @@ public final class LogMemoryCommand
             case 8:
                 final short value8 = metadataBuffer.getShort(offset + BTREE_OFFSET);
                 final int bitCount8 = bitCount((value8 & 0x5555) & ~(((value8 & 0xaaaa) >> 1) & 0x5555));
-                allocated += bitCount8 * block;
+                memoryUsed += bitCount8 * block;
                 if (verbose)
                 {
                     out.printf("%d\t\t%d\n", block, bitCount8);
@@ -132,7 +132,7 @@ public final class LogMemoryCommand
             case 16:
                 final int value16 = metadataBuffer.getInt(offset + BTREE_OFFSET);
                 final int bitCount16 = bitCount((value16 & 0x5555_5555) & ~(((value16 & 0xaaaa_aaaa) >> 1) & 0x5555_5555));
-                allocated += bitCount16 * block;
+                memoryUsed += bitCount16 * block;
                 if (verbose)
                 {
                     out.printf("%d\t\t%d\n", block, bitCount16);
@@ -140,14 +140,14 @@ public final class LogMemoryCommand
                 break;
             default:
                 int bitCount32 = 0;
-                for (int limit=offset + length; offset < limit;)
+                for (int index = offset, limit=offset + length; offset < limit; index++)
                 {
-                    final long value32 = metadataBuffer.getLong(offset + BTREE_OFFSET);
+                    final long value32 = metadataBuffer.getLong(index + BTREE_OFFSET);
                     bitCount32 += bitCount((value32 & 0x5555_5555_5555_5555L) &
                                          ~(((value32 & 0xaaaa_aaaa_aaaa_aaaaL) >> 1) & 0x5555_5555_5555_5555L));
                     offset += Long.SIZE;
                 }
-                allocated += bitCount32 * block;
+                memoryUsed += bitCount32 * block;
                 if (verbose)
                 {
                     out.printf("%d\t\t%d\n", block, bitCount32);
@@ -155,7 +155,11 @@ public final class LogMemoryCommand
                 break;
             }
         }
-        out.printf("%s\t%d %d\n", name, allocated, maximumBlockSize);
+        if (verbose)
+        {
+            out.printf("total %d / %d\n", memoryUsed, maximumBlockSize);
+        }
+        out.printf("%s %.3f%%\n", name, memoryUsed / (float) maximumBlockSize);
     }
 
     void invoke()
