@@ -29,6 +29,9 @@ import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
 
+import java.util.function.LongPredicate;
+import java.util.function.Predicate;
+
 public final class LoggableStream implements AutoCloseable
 {
     private final BeginFW beginRO = new BeginFW();
@@ -43,6 +46,7 @@ public final class LoggableStream implements AutoCloseable
 
     private final String streamFormat;
     private final String throttleFormat;
+    private final String targetName;
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final RingBufferSpy throttleBuffer;
@@ -62,6 +66,7 @@ public final class LoggableStream implements AutoCloseable
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.throttleBuffer = layout.throttleBuffer();
+        this.targetName = receiver;
         this.out = logger;
         this.verbose = verbose;
     }
@@ -121,10 +126,32 @@ public final class LoggableStream implements AutoCloseable
 
         if (verbose && sourceName.startsWith("http"))
         {
-            HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+            final boolean initial = (sourceRef != 0);
+            final long typedRef = (sourceRef != 0) ? sourceRef : correlationId;
+            final Predicate<String> isHttp = n -> n.startsWith("http");
+            final LongPredicate isClient = r -> r > 0L && (r & 0x01L) != 0x00L;
+            final LongPredicate isServer = r -> r > 0L && (r & 0x01L) == 0x00L;
+            final LongPredicate isProxy = r -> r < 0L && (r & 0x01L) == 0x00L;
+            final boolean isHttpClientInitial = initial && isClient.test(typedRef) && isHttp.test(targetName);
+            final boolean isHttpClientReply = !initial && isClient.test(typedRef) && isHttp.test(sourceName);
+            final boolean isHttpServerInitial = initial && isServer.test(typedRef) && isHttp.test(sourceName);
+            final boolean isHttpServerReply = !initial && isServer.test(typedRef) && isHttp.test(targetName);
+            final boolean isHttpProxyInitial = initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
+                    || isHttp.test(targetName));
+            final boolean isHttpProxyReply = !initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
+                    || isHttp.test(targetName));
 
-            httpBeginEx.headers()
-                       .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+            if (isHttpClientInitial
+                    || isHttpServerReply
+                    || isHttpClientReply
+                    || isHttpServerInitial
+                    || isHttpProxyInitial
+                    | isHttpProxyReply)
+            {
+                HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                httpBeginEx.headers()
+                        .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+            }
         }
     }
 

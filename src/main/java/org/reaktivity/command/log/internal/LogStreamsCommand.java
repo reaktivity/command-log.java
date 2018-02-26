@@ -16,7 +16,6 @@
 package org.reaktivity.command.log.internal;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -102,8 +101,7 @@ public final class LogStreamsCommand
             LoggableStream[] loggables = files.filter(this::isStreamsFile)
                  .peek(this::onDiscovered)
                  .map(this::newLoggable)
-                 .collect(toList())
-                 .toArray(new LoggableStream[0]);
+                 .toArray(LoggableStream[]::new);
 
             final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
 
