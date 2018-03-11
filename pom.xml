@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.8</version>
+  <version>0.9</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -45,7 +45,7 @@
 
     <nukleus.version>0.17</nukleus.version>
     <nukleus.plugin.version>0.25</nukleus.plugin.version>
-    <nukleus.http.spec.version>0.45</nukleus.http.spec.version>
+    <nukleus.http.spec.version>0.46</nukleus.http.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
