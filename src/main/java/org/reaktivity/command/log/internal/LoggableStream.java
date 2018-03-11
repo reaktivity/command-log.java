@@ -60,8 +60,8 @@ public final class LoggableStream implements AutoCloseable
         Logger logger,
         boolean verbose)
     {
-        this.streamFormat = String.format("[%s -> %s]\t[0x%%016x] %%s\n", sender, receiver);
-        this.throttleFormat = String.format("[%s <- %s]\t[0x%%016x] %%s\n", sender, receiver);
+        this.streamFormat = String.format("[%%d] [%s -> %s]\t[0x%%016x] %%s\n", sender, receiver);
+        this.throttleFormat = String.format("[%%d] [%s <- %s]\t[0x%%016x] %%s\n", sender, receiver);
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
@@ -113,6 +113,7 @@ public final class LoggableStream implements AutoCloseable
     private void handleBegin(
         final BeginFW begin)
     {
+        final long timestamp = begin.timestamp();
         final long streamId = begin.streamId();
         final String sourceName = begin.source().asString();
         final long sourceRef = begin.sourceRef();
@@ -121,7 +122,7 @@ public final class LoggableStream implements AutoCloseable
 
         OctetsFW extension = begin.extension();
 
-        out.printf(streamFormat, streamId,
+        out.printf(streamFormat, timestamp, streamId,
                    format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
 
         if (verbose && sourceName.startsWith("http"))
@@ -158,30 +159,33 @@ public final class LoggableStream implements AutoCloseable
     private void handleData(
         final DataFW data)
     {
+        final long timestamp = data.timestamp();
         final long streamId = data.streamId();
         final int length = data.length();
         final int padding = data.padding();
         final long authorization = data.authorization();
 
-        out.printf(format(streamFormat, streamId, format("DATA [%d] [%d] [0x%016x]", length, padding, authorization)));
+        out.printf(format(streamFormat, timestamp, streamId, format("DATA [%d] [%d] [0x%016x]", length, padding, authorization)));
     }
 
     private void handleEnd(
         final EndFW end)
     {
+        final long timestamp = end.timestamp();
         final long streamId = end.streamId();
         final long authorization = end.authorization();
 
-        out.printf(format(streamFormat, streamId, format("END [0x%016x]", authorization)));
+        out.printf(format(streamFormat, timestamp, streamId, format("END [0x%016x]", authorization)));
     }
 
     private void handleAbort(
         final AbortFW abort)
     {
+        final long timestamp = abort.timestamp();
         final long streamId = abort.streamId();
         final long authorization = abort.authorization();
 
-        out.printf(format(streamFormat, streamId, format("ABORT [0x%016x]", authorization)));
+        out.printf(format(streamFormat, timestamp, streamId, format("ABORT [0x%016x]", authorization)));
     }
 
     private void handleThrottle(
@@ -206,19 +210,21 @@ public final class LoggableStream implements AutoCloseable
     private void handleReset(
         final ResetFW reset)
     {
+        final long timestamp = reset.timestamp();
         final long streamId = reset.streamId();
 
-        out.printf(format(throttleFormat, streamId, "RESET"));
+        out.printf(format(throttleFormat, timestamp, streamId, "RESET"));
     }
 
     private void handleWindow(
         final WindowFW window)
     {
+        final long timestamp = window.timestamp();
         final long streamId = window.streamId();
         final int credit = window.credit();
         final int padding = window.padding();
         final long groupId = window.groupId();
 
-        out.printf(format(throttleFormat, streamId, format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
+        out.printf(format(throttleFormat, timestamp, streamId, format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
     }
 }
