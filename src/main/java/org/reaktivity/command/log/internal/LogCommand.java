@@ -19,11 +19,7 @@ import static org.apache.commons.cli.Option.builder;
 
 import java.util.Properties;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
+import org.apache.commons.cli.*;
 import org.reaktivity.nukleus.Configuration;
 
 public final class LogCommand
@@ -41,6 +37,7 @@ public final class LogCommand
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
+        options.addOption(builder("i").longOpt("interval").desc("interval counter updates at").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
@@ -54,6 +51,7 @@ public final class LogCommand
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
             String type = cmdline.getOptionValue("type", "streams");
+            int interval = Integer.getInteger(cmdline.getOptionValue("interval"));
 
             Properties properties = new Properties();
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
@@ -66,7 +64,7 @@ public final class LogCommand
             }
             else if ("counters".equals(type))
             {
-                new LogCountersCommand(config, System.out::printf, verbose).invoke();
+                new LogCountersCommand(config, System.out::printf, interval, verbose).invoke();
             }
             else if ("queues".equals(type))
             {

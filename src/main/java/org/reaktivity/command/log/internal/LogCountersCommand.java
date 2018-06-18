@@ -34,10 +34,12 @@ public final class LogCountersCommand
     private final int counterLabelsBufferCapacity;
     private final int counterValuesBufferCapacity;
     private final Logger out;
+    private final int interval;
 
     LogCountersCommand(
         Configuration config,
         Logger out,
+        int interval,
         boolean verbose)
     {
         this.directory = config.directory();
@@ -47,6 +49,7 @@ public final class LogCountersCommand
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
+        this.interval = interval;
     }
 
     private boolean isControlFile(
@@ -84,17 +87,20 @@ public final class LogCountersCommand
         }
     }
 
-    void invoke()
-    {
-        try (Stream<Path> files = Files.walk(directory, 2))
+    void invoke() throws InterruptedException {
+        while (true)
         {
-            files.filter(this::isControlFile)
-                 .peek(this::onDiscovered)
-                 .forEach(this::counters);
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
+            try (Stream<Path> files = Files.walk(directory, 2))
+            {
+                files.filter(this::isControlFile)
+                        .peek(this::onDiscovered)
+                        .forEach(this::counters);
+            }
+            catch (IOException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+            Thread.sleep(this.interval*1000);
         }
     }
 }
