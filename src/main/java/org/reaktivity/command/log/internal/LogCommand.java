@@ -51,7 +51,7 @@ public final class LogCommand
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
             String type = cmdline.getOptionValue("type", "streams");
-            int interval = Integer.getInteger(cmdline.getOptionValue("interval"));
+            int interval = Integer.getInteger(cmdline.getOptionValue("interval", "0"));
 
             Properties properties = new Properties();
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);

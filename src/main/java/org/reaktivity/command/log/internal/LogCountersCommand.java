@@ -88,8 +88,13 @@ public final class LogCountersCommand
     }
 
     void invoke() throws InterruptedException {
-        while (true)
+        boolean hasInterval = true;
+        while (hasInterval)
         {
+            if(interval <= 0)
+            {
+                hasInterval = false;
+            }
             try (Stream<Path> files = Files.walk(directory, 2))
             {
                 files.filter(this::isControlFile)
