@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -49,7 +50,7 @@ public final class LogCountersCommand implements Command
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
-        this.pathCountersManager = new HashMap<>();
+        this.pathCountersManager = new LinkedHashMap<>();
     }
 
     private boolean isControlFile(

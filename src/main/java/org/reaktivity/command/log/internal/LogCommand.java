@@ -55,7 +55,7 @@ public final class LogCommand
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
             String type = cmdline.getOptionValue("type", "streams");
-            int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
+            final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
 
             Properties properties = new Properties();
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
@@ -81,16 +81,11 @@ public final class LogCommand
                 command = new LogRoutesCommand(config, System.out::printf, verbose);
             }
 
-            boolean hasInterval = true;
-            while (hasInterval)
+            do
             {
-                if (interval <= 0)
-                {
-                    hasInterval = false;
-                }
                 command.invoke();
                 Thread.sleep(interval * 1000);
-            }
+            } while (interval > 0);
         }
     }
 }

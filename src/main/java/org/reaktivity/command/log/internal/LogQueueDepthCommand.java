@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
 public final class LogQueueDepthCommand implements Command
@@ -46,7 +47,7 @@ public final class LogQueueDepthCommand implements Command
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
-        this.pathStreamsLayout = new HashMap<>();
+        this.pathStreamsLayout = new LinkedHashMap<>();
     }
 
     private boolean isStreamsFile(
