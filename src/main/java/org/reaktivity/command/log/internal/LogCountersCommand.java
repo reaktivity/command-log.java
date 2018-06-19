@@ -87,7 +87,8 @@ public final class LogCountersCommand
         }
     }
 
-    void invoke() throws InterruptedException {
+    void invoke() throws InterruptedException
+    {
         boolean hasInterval = true;
         while (hasInterval)
         {

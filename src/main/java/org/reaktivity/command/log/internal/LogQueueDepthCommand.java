@@ -30,6 +30,7 @@ public final class LogQueueDepthCommand
     private final Path directory;
     private final boolean verbose;
     private final Logger out;
+    private final int interval;
 
     private final long streamsCapacity;
     private final long throttleCapacity;
@@ -37,6 +38,7 @@ public final class LogQueueDepthCommand
     public LogQueueDepthCommand(
         Configuration config,
         Logger out,
+        int interval,
         boolean verbose)
     {
         this.directory = config.directory();
@@ -44,6 +46,7 @@ public final class LogQueueDepthCommand
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
+        this.interval = interval;
     }
 
     private boolean isStreamsFile(
@@ -92,17 +95,26 @@ public final class LogQueueDepthCommand
         out.printf("%s.%s %d\n ", name, type, producerAt - consumerAt);
     }
 
-    void invoke()
+    void invoke() throws InterruptedException
     {
-        try (Stream<Path> files = Files.walk(directory, 3))
+        boolean hasInterval = true;
+        while (hasInterval)
         {
-            files.filter(this::isStreamsFile)
-                    .peek(this::onDiscovered)
-                    .forEach(this::displayQueueDepth);
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
+            if (interval <= 0)
+            {
+                hasInterval = false;
+            }
+            try (Stream<Path> files = Files.walk(directory, 3))
+            {
+                files.filter(this::isStreamsFile)
+                        .peek(this::onDiscovered)
+                        .forEach(this::displayQueueDepth);
+            }
+            catch (IOException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+            Thread.sleep(this.interval*1000);
         }
     }
 }

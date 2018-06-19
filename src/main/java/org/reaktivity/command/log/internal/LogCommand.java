@@ -37,9 +37,10 @@ public final class LogCommand
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
-        options.addOption(builder("i").longOpt("interval").desc("interval counter updates at").build());
+        options.addOption(builder("i").hasArg().longOpt("interval").desc("interval counter updates at").build());
 
         CommandLine cmdline = parser.parse(options, args);
+        System.out.println(cmdline.getArgs());
 
         if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
         {
@@ -51,7 +52,7 @@ public final class LogCommand
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
             String type = cmdline.getOptionValue("type", "streams");
-            int interval = Integer.getInteger(cmdline.getOptionValue("interval", "0"));
+            int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
 
             Properties properties = new Properties();
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
@@ -68,7 +69,7 @@ public final class LogCommand
             }
             else if ("queues".equals(type))
             {
-                new LogQueueDepthCommand(config, System.out::printf, verbose).invoke();
+                new LogQueueDepthCommand(config, System.out::printf, interval, verbose).invoke();
             }
             else if ("routes".equals(type))
             {
