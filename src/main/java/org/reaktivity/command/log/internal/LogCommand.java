@@ -19,7 +19,11 @@ import static org.apache.commons.cli.Option.builder;
 
 import java.util.Properties;
 
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
 import org.reaktivity.nukleus.Configuration;
 
 public final class LogCommand
