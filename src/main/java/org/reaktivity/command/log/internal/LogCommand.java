@@ -41,7 +41,7 @@ public final class LogCommand
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
-        options.addOption(builder("i").hasArg().longOpt("interval").desc("interval for counters/queues to get update").build());
+        options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
@@ -89,7 +89,7 @@ public final class LogCommand
                     hasInterval = false;
                 }
                 command.invoke();
-                Thread.sleep(interval*1000);
+                Thread.sleep(interval * 1000);
             }
         }
     }
