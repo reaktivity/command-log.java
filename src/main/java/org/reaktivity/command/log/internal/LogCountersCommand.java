@@ -35,7 +35,7 @@ public final class LogCountersCommand implements Command
     private final int counterLabelsBufferCapacity;
     private final int counterValuesBufferCapacity;
     private final Logger out;
-    private final LinkedHashMap<Path, ControlLayout> pathControlLayout;
+    private final LinkedHashMap<Path, CountersManager> pathCountersManager;
 
     LogCountersCommand(
         Configuration config,
@@ -49,7 +49,7 @@ public final class LogCountersCommand implements Command
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
-        this.pathControlLayout = new LinkedHashMap<>();
+        this.pathCountersManager = new LinkedHashMap<>();
     }
 
     private boolean isControlFile(
@@ -72,22 +72,24 @@ public final class LogCountersCommand implements Command
     private void counters(
         Path controlPath)
     {
-        if(!pathControlLayout.containsKey(controlPath))
-        {
-            pathControlLayout.put(controlPath, new ControlLayout.Builder()
-                    .controlPath(controlPath)
-                    .commandBufferCapacity(commandBufferCapacity)
-                    .responseBufferCapacity(responseBufferCapacity)
-                    .counterLabelsBufferCapacity(counterLabelsBufferCapacity)
-                    .counterValuesBufferCapacity(counterValuesBufferCapacity)
-                    .readonly(true)
-                    .build());
-        }
-        ControlLayout layout = pathControlLayout.get(controlPath);
         String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
-        CountersManager manager = new CountersManager(layout.counterLabelsBuffer(), layout.counterValuesBuffer());
+        CountersManager manager = pathCountersManager.computeIfAbsent(controlPath, this::initializeCountersManager);
         manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
 
+    }
+
+    private CountersManager initializeCountersManager(Path path)
+    {
+        ControlLayout layout = new ControlLayout.Builder()
+                .controlPath(path)
+                .commandBufferCapacity(commandBufferCapacity)
+                .responseBufferCapacity(responseBufferCapacity)
+                .counterLabelsBufferCapacity(counterLabelsBufferCapacity)
+                .counterValuesBufferCapacity(counterValuesBufferCapacity)
+                .readonly(true)
+                .build();
+
+        return new CountersManager(layout.counterLabelsBuffer(), layout.counterValuesBuffer());
     }
 
     public void invoke()

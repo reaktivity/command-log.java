@@ -69,19 +69,21 @@ public final class LogQueueDepthCommand implements Command
     private void displayQueueDepth(
         Path path)
     {
-        if(!pathStreamsLayout.containsKey(path))
-        {
-            pathStreamsLayout.put(path, new StreamsLayout.Builder()
-                    .path(path)
-                    .streamsCapacity(streamsCapacity)
-                    .throttleCapacity(throttleCapacity)
-                    .readonly(true)
-                    .build());
-        }
-        StreamsLayout layout = pathStreamsLayout.get(path);
+
+        StreamsLayout layout = pathStreamsLayout.computeIfAbsent(path, this::initializeStreamLayout);
         String name = path.getName(path.getNameCount() - 1).toString();
         displayQueueDepth(name, "streams", layout.streamsBuffer());
         displayQueueDepth(name, "throttle", layout.throttleBuffer());
+    }
+
+    private StreamsLayout initializeStreamLayout(Path path)
+    {
+        return new StreamsLayout.Builder()
+                .path(path)
+                .streamsCapacity(streamsCapacity)
+                .throttleCapacity(throttleCapacity)
+                .readonly(true)
+                .build();
     }
 
     private void displayQueueDepth(
