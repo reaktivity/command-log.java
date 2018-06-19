@@ -44,7 +44,6 @@ public final class LogCommand
         options.addOption(builder("i").hasArg().longOpt("interval").desc("interval for counter/queue to get update").build());
 
         CommandLine cmdline = parser.parse(options, args);
-        System.out.println(cmdline.getArgs());
 
         if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
         {
