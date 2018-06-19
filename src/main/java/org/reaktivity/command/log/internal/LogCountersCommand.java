@@ -18,7 +18,7 @@ package org.reaktivity.command.log.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -35,7 +35,7 @@ public final class LogCountersCommand implements Command
     private final int counterLabelsBufferCapacity;
     private final int counterValuesBufferCapacity;
     private final Logger out;
-    private final LinkedHashMap<Path, CountersManager> pathCountersManager;
+    private final HashMap<Path, CountersManager> pathCountersManager;
 
     LogCountersCommand(
         Configuration config,
@@ -49,7 +49,7 @@ public final class LogCountersCommand implements Command
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
-        this.pathCountersManager = new LinkedHashMap<>();
+        this.pathCountersManager = new HashMap<>();
     }
 
     private boolean isControlFile(

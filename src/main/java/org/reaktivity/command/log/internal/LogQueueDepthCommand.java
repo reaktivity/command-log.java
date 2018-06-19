@@ -23,7 +23,7 @@ import org.reaktivity.nukleus.Configuration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.stream.Stream;
 
 public final class LogQueueDepthCommand implements Command
@@ -34,7 +34,7 @@ public final class LogQueueDepthCommand implements Command
 
     private final long streamsCapacity;
     private final long throttleCapacity;
-    private final LinkedHashMap<Path, StreamsLayout> pathStreamsLayout;
+    private final HashMap<Path, StreamsLayout> pathStreamsLayout;
 
     public LogQueueDepthCommand(
         Configuration config,
@@ -46,7 +46,7 @@ public final class LogQueueDepthCommand implements Command
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
-        this.pathStreamsLayout = new LinkedHashMap<>();
+        this.pathStreamsLayout = new HashMap<>();
     }
 
     private boolean isStreamsFile(
