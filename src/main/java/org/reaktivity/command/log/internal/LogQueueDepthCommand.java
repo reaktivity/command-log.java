@@ -103,8 +103,8 @@ public final class LogQueueDepthCommand implements Command
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             files.filter(this::isStreamsFile)
-                    .peek(this::onDiscovered)
-                    .forEach(this::displayQueueDepth);
+                 .peek(this::onDiscovered)
+                 .forEach(this::displayQueueDepth);
         }
         catch (IOException ex)
         {

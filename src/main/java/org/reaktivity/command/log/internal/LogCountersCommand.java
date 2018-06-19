@@ -75,7 +75,6 @@ public final class LogCountersCommand implements Command
         String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
         CountersManager manager = pathCountersManager.computeIfAbsent(controlPath, this::initializeCountersManager);
         manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
-
     }
 
     private CountersManager initializeCountersManager(Path path)
@@ -97,8 +96,8 @@ public final class LogCountersCommand implements Command
         try (Stream<Path> files = Files.walk(directory, 2))
         {
             files.filter(this::isControlFile)
-                    .peek(this::onDiscovered)
-                    .forEach(this::counters);
+                 .peek(this::onDiscovered)
+                 .forEach(this::counters);
         }
         catch (IOException ex)
         {
