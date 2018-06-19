@@ -23,22 +23,22 @@ import org.reaktivity.nukleus.Configuration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
-public final class LogQueueDepthCommand
+public final class LogQueueDepthCommand implements Command
 {
     private final Path directory;
     private final boolean verbose;
     private final Logger out;
-    private final int interval;
 
     private final long streamsCapacity;
     private final long throttleCapacity;
+    private final LinkedHashMap<Path, StreamsLayout> pathStreamsLayout;
 
     public LogQueueDepthCommand(
         Configuration config,
         Logger out,
-        int interval,
         boolean verbose)
     {
         this.directory = config.directory();
@@ -46,7 +46,7 @@ public final class LogQueueDepthCommand
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
-        this.interval = interval;
+        this.pathStreamsLayout = new LinkedHashMap<>();
     }
 
     private boolean isStreamsFile(
@@ -69,18 +69,19 @@ public final class LogQueueDepthCommand
     private void displayQueueDepth(
         Path path)
     {
-        try (StreamsLayout layout = new StreamsLayout.Builder()
-                .path(path)
-                .streamsCapacity(streamsCapacity)
-                .throttleCapacity(throttleCapacity)
-                .readonly(true)
-                .build();
-        )
+        if(!pathStreamsLayout.containsKey(path))
         {
-            String name = path.getName(path.getNameCount() - 1).toString();
-            displayQueueDepth(name, "streams", layout.streamsBuffer());
-            displayQueueDepth(name, "throttle", layout.throttleBuffer());
+            pathStreamsLayout.put(path, new StreamsLayout.Builder()
+                    .path(path)
+                    .streamsCapacity(streamsCapacity)
+                    .throttleCapacity(throttleCapacity)
+                    .readonly(true)
+                    .build());
         }
+        StreamsLayout layout = pathStreamsLayout.get(path);
+        String name = path.getName(path.getNameCount() - 1).toString();
+        displayQueueDepth(name, "streams", layout.streamsBuffer());
+        displayQueueDepth(name, "throttle", layout.throttleBuffer());
     }
 
     private void displayQueueDepth(
@@ -95,26 +96,17 @@ public final class LogQueueDepthCommand
         out.printf("%s.%s %d\n ", name, type, producerAt - consumerAt);
     }
 
-    void invoke() throws InterruptedException
+    public void invoke()
     {
-        boolean hasInterval = true;
-        while (hasInterval)
+        try (Stream<Path> files = Files.walk(directory, 3))
         {
-            if (interval <= 0)
-            {
-                hasInterval = false;
-            }
-            try (Stream<Path> files = Files.walk(directory, 3))
-            {
-                files.filter(this::isStreamsFile)
-                        .peek(this::onDiscovered)
-                        .forEach(this::displayQueueDepth);
-            }
-            catch (IOException ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
-            Thread.sleep(this.interval*1000);
+            files.filter(this::isStreamsFile)
+                    .peek(this::onDiscovered)
+                    .forEach(this::displayQueueDepth);
+        }
+        catch (IOException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
         }
     }
 }

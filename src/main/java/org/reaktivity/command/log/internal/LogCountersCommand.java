@@ -18,6 +18,7 @@ package org.reaktivity.command.log.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -25,7 +26,7 @@ import org.agrona.concurrent.status.CountersManager;
 import org.reaktivity.command.log.internal.layouts.ControlLayout;
 import org.reaktivity.nukleus.Configuration;
 
-public final class LogCountersCommand
+public final class LogCountersCommand implements Command
 {
     private final Path directory;
     private final boolean verbose;
@@ -34,12 +35,11 @@ public final class LogCountersCommand
     private final int counterLabelsBufferCapacity;
     private final int counterValuesBufferCapacity;
     private final Logger out;
-    private final int interval;
+    private final LinkedHashMap<Path, ControlLayout> pathControlLayout;
 
     LogCountersCommand(
         Configuration config,
         Logger out,
-        int interval,
         boolean verbose)
     {
         this.directory = config.directory();
@@ -49,7 +49,7 @@ public final class LogCountersCommand
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
-        this.interval = interval;
+        this.pathControlLayout = new LinkedHashMap<>();
     }
 
     private boolean isControlFile(
@@ -72,41 +72,35 @@ public final class LogCountersCommand
     private void counters(
         Path controlPath)
     {
-        try (ControlLayout layout = new ControlLayout.Builder()
-                .controlPath(controlPath)
-                .commandBufferCapacity(commandBufferCapacity)
-                .responseBufferCapacity(responseBufferCapacity)
-                .counterLabelsBufferCapacity(counterLabelsBufferCapacity)
-                .counterValuesBufferCapacity(counterValuesBufferCapacity)
-                .readonly(true)
-                .build())
+        if(!pathControlLayout.containsKey(controlPath))
         {
-            String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
-            CountersManager manager = new CountersManager(layout.counterLabelsBuffer(), layout.counterValuesBuffer());
-            manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
+            pathControlLayout.put(controlPath, new ControlLayout.Builder()
+                    .controlPath(controlPath)
+                    .commandBufferCapacity(commandBufferCapacity)
+                    .responseBufferCapacity(responseBufferCapacity)
+                    .counterLabelsBufferCapacity(counterLabelsBufferCapacity)
+                    .counterValuesBufferCapacity(counterValuesBufferCapacity)
+                    .readonly(true)
+                    .build());
         }
+        ControlLayout layout = pathControlLayout.get(controlPath);
+        String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
+        CountersManager manager = new CountersManager(layout.counterLabelsBuffer(), layout.counterValuesBuffer());
+        manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
+
     }
 
-    void invoke() throws InterruptedException
+    public void invoke()
     {
-        boolean hasInterval = true;
-        while (hasInterval)
+        try (Stream<Path> files = Files.walk(directory, 2))
         {
-            if(interval <= 0)
-            {
-                hasInterval = false;
-            }
-            try (Stream<Path> files = Files.walk(directory, 2))
-            {
-                files.filter(this::isControlFile)
-                        .peek(this::onDiscovered)
-                        .forEach(this::counters);
-            }
-            catch (IOException ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
-            }
-            Thread.sleep(this.interval*1000);
+            files.filter(this::isControlFile)
+                    .peek(this::onDiscovered)
+                    .forEach(this::counters);
+        }
+        catch (IOException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
         }
     }
 }

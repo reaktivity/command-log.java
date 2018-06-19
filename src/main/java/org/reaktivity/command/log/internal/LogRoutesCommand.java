@@ -29,7 +29,7 @@ import org.agrona.concurrent.IdleStrategy;
 import org.reaktivity.command.log.internal.layouts.RoutesLayout;
 import org.reaktivity.nukleus.Configuration;
 
-public class LogRoutesCommand
+public class LogRoutesCommand implements Command
 {
 
     public static final String ROUTES_BUFFER_CAPACITY_PROPERTY_NAME = "reaktor.routes.buffer.capacity";
@@ -90,7 +90,7 @@ public class LogRoutesCommand
         }
     }
 
-    void invoke()
+    public void invoke()
     {
         try (Stream<Path> files = Files.walk(directory, 2))
         {

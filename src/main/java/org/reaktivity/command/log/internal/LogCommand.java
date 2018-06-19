@@ -62,21 +62,34 @@ public final class LogCommand
 
             final Configuration config = new LogCommandConfiguration(properties);
 
+            Command command = null;
+
             if ("streams".equals(type) || "streams-nowait".equals(type))
             {
-                new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type)).invoke();
+                command = new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type));
             }
             else if ("counters".equals(type))
             {
-                new LogCountersCommand(config, System.out::printf, interval, verbose).invoke();
+                command = new LogCountersCommand(config, System.out::printf, verbose);
             }
             else if ("queues".equals(type))
             {
-                new LogQueueDepthCommand(config, System.out::printf, interval, verbose).invoke();
+                command = new LogQueueDepthCommand(config, System.out::printf, verbose);
             }
             else if ("routes".equals(type))
             {
-                new LogRoutesCommand(config, System.out::printf, verbose).invoke();
+                command = new LogRoutesCommand(config, System.out::printf, verbose);
+            }
+
+            boolean hasInterval = true;
+            while (hasInterval)
+            {
+                if (interval <= 0)
+                {
+                    hasInterval = false;
+                }
+                command.invoke();
+                Thread.sleep(interval*1000);
             }
         }
     }
