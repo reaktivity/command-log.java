@@ -41,7 +41,7 @@ public final class LogCommand
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
-        options.addOption(builder("i").hasArg().longOpt("interval").desc("interval for counter/queue to get update").build());
+        options.addOption(builder("i").hasArg().longOpt("interval").desc("interval for counters/queues to get update").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
