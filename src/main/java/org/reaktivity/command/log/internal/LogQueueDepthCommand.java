@@ -23,9 +23,11 @@ import org.reaktivity.nukleus.Configuration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
-public final class LogQueueDepthCommand
+public final class LogQueueDepthCommand implements Command
 {
     private final Path directory;
     private final boolean verbose;
@@ -33,6 +35,7 @@ public final class LogQueueDepthCommand
 
     private final long streamsCapacity;
     private final long throttleCapacity;
+    private final HashMap<Path, StreamsLayout> pathStreamsLayout;
 
     public LogQueueDepthCommand(
         Configuration config,
@@ -44,6 +47,7 @@ public final class LogQueueDepthCommand
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
+        this.pathStreamsLayout = new LinkedHashMap<>();
     }
 
     private boolean isStreamsFile(
@@ -66,18 +70,21 @@ public final class LogQueueDepthCommand
     private void displayQueueDepth(
         Path path)
     {
-        try (StreamsLayout layout = new StreamsLayout.Builder()
+
+        StreamsLayout layout = pathStreamsLayout.computeIfAbsent(path, this::initializeStreamLayout);
+        String name = path.getName(path.getNameCount() - 1).toString();
+        displayQueueDepth(name, "streams", layout.streamsBuffer());
+        displayQueueDepth(name, "throttle", layout.throttleBuffer());
+    }
+
+    private StreamsLayout initializeStreamLayout(Path path)
+    {
+        return new StreamsLayout.Builder()
                 .path(path)
                 .streamsCapacity(streamsCapacity)
                 .throttleCapacity(throttleCapacity)
                 .readonly(true)
                 .build();
-        )
-        {
-            String name = path.getName(path.getNameCount() - 1).toString();
-            displayQueueDepth(name, "streams", layout.streamsBuffer());
-            displayQueueDepth(name, "throttle", layout.throttleBuffer());
-        }
     }
 
     private void displayQueueDepth(
@@ -92,13 +99,13 @@ public final class LogQueueDepthCommand
         out.printf("%s.%s %d\n ", name, type, producerAt - consumerAt);
     }
 
-    void invoke()
+    public void invoke()
     {
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             files.filter(this::isStreamsFile)
-                    .peek(this::onDiscovered)
-                    .forEach(this::displayQueueDepth);
+                 .peek(this::onDiscovered)
+                 .forEach(this::displayQueueDepth);
         }
         catch (IOException ex)
         {

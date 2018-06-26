@@ -41,6 +41,7 @@ public final class LogCommand
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
+        options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
@@ -54,28 +55,37 @@ public final class LogCommand
             String directory = cmdline.getOptionValue("directory");
             boolean verbose = cmdline.hasOption("verbose");
             String type = cmdline.getOptionValue("type", "streams");
+            final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
 
             Properties properties = new Properties();
             properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
 
             final Configuration config = new LogCommandConfiguration(properties);
 
+            Command command = null;
+
             if ("streams".equals(type) || "streams-nowait".equals(type))
             {
-                new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type)).invoke();
+                command = new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type));
             }
             else if ("counters".equals(type))
             {
-                new LogCountersCommand(config, System.out::printf, verbose).invoke();
+                command = new LogCountersCommand(config, System.out::printf, verbose);
             }
             else if ("queues".equals(type))
             {
-                new LogQueueDepthCommand(config, System.out::printf, verbose).invoke();
+                command = new LogQueueDepthCommand(config, System.out::printf, verbose);
             }
             else if ("routes".equals(type))
             {
-                new LogRoutesCommand(config, System.out::printf, verbose).invoke();
+                command = new LogRoutesCommand(config, System.out::printf, verbose);
             }
+
+            do
+            {
+                command.invoke();
+                Thread.sleep(interval * 1000);
+            } while (interval > 0);
         }
     }
 }

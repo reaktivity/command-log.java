@@ -18,6 +18,8 @@ package org.reaktivity.command.log.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -25,7 +27,7 @@ import org.agrona.concurrent.status.CountersManager;
 import org.reaktivity.command.log.internal.layouts.ControlLayout;
 import org.reaktivity.nukleus.Configuration;
 
-public final class LogCountersCommand
+public final class LogCountersCommand implements Command
 {
     private final Path directory;
     private final boolean verbose;
@@ -34,6 +36,7 @@ public final class LogCountersCommand
     private final int counterLabelsBufferCapacity;
     private final int counterValuesBufferCapacity;
     private final Logger out;
+    private final HashMap<Path, CountersManager> pathCountersManager;
 
     LogCountersCommand(
         Configuration config,
@@ -47,6 +50,7 @@ public final class LogCountersCommand
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
+        this.pathCountersManager = new LinkedHashMap<>();
     }
 
     private boolean isControlFile(
@@ -69,22 +73,26 @@ public final class LogCountersCommand
     private void counters(
         Path controlPath)
     {
-        try (ControlLayout layout = new ControlLayout.Builder()
-                .controlPath(controlPath)
+        String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
+        CountersManager manager = pathCountersManager.computeIfAbsent(controlPath, this::initializeCountersManager);
+        manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
+    }
+
+    private CountersManager initializeCountersManager(Path path)
+    {
+        ControlLayout layout = new ControlLayout.Builder()
+                .controlPath(path)
                 .commandBufferCapacity(commandBufferCapacity)
                 .responseBufferCapacity(responseBufferCapacity)
                 .counterLabelsBufferCapacity(counterLabelsBufferCapacity)
                 .counterValuesBufferCapacity(counterValuesBufferCapacity)
                 .readonly(true)
-                .build())
-        {
-            String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
-            CountersManager manager = new CountersManager(layout.counterLabelsBuffer(), layout.counterValuesBuffer());
-            manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
-        }
+                .build();
+
+        return new CountersManager(layout.counterLabelsBuffer(), layout.counterValuesBuffer());
     }
 
-    void invoke()
+    public void invoke()
     {
         try (Stream<Path> files = Files.walk(directory, 2))
         {
