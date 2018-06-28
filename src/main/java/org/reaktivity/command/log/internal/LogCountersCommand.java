@@ -96,10 +96,10 @@ public final class LogCountersCommand implements Runnable
     {
         try (Stream<Path> files = Files.walk(directory, 2))
         {
-            System.out.print("\n");
             files.filter(this::isControlFile)
                  .peek(this::onDiscovered)
                  .forEach(this::counters);
+            System.out.print("\n");
         }
         catch (IOException ex)
         {
