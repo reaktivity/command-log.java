@@ -95,6 +95,7 @@ public class LogRoutesCommand implements Runnable
     {
         try (Stream<Path> files = Files.walk(directory, 2))
         {
+        System.out.print("\n");
         LoggableRoutes[] loggables = files.filter(this::isRoutesFile)
              .peek(this::onDiscovered)
              .map(this::newLoggable)
@@ -105,8 +106,6 @@ public class LogRoutesCommand implements Runnable
             {
                 loggables[i].process();
             }
-            System.out.print("\n");
-
         }
         catch (IOException ex)
         {
