@@ -105,6 +105,7 @@ public class LogRoutesCommand implements Runnable
             {
                 loggables[i].process();
             }
+            System.out.print("\n");
 
         }
         catch (IOException ex)
