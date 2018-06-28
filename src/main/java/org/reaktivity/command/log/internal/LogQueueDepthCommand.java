@@ -23,13 +23,11 @@ import org.reaktivity.nukleus.Configuration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.stream.Stream;
 
-public final class LogQueueDepthCommand implements Command
+public final class LogQueueDepthCommand implements Runnable
 {
     private final Path directory;
     private final boolean verbose;
@@ -37,8 +35,7 @@ public final class LogQueueDepthCommand implements Command
 
     private final long streamsCapacity;
     private final long throttleCapacity;
-    private final HashMap<Path, StreamsLayout> pathStreamsLayout;
-    private final List<String> queues;
+    private final Map<Path, StreamsLayout> pathStreamsLayout;
 
     public LogQueueDepthCommand(
         Configuration config,
@@ -51,7 +48,6 @@ public final class LogQueueDepthCommand implements Command
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
         this.pathStreamsLayout = new LinkedHashMap<>();
-        this.queues = new ArrayList<>();
     }
 
     private boolean isStreamsFile(
@@ -75,13 +71,13 @@ public final class LogQueueDepthCommand implements Command
         Path path)
     {
 
-        StreamsLayout layout = pathStreamsLayout.computeIfAbsent(path, this::initializeStreamLayout);
+        StreamsLayout layout = pathStreamsLayout.computeIfAbsent(path, this::newCountersManager);
         String name = path.getName(path.getNameCount() - 1).toString();
         displayQueueDepth(name, "streams", layout.streamsBuffer());
         displayQueueDepth(name, "throttle", layout.throttleBuffer());
     }
 
-    private StreamsLayout initializeStreamLayout(Path path)
+    private StreamsLayout newCountersManager(Path path)
     {
         return new StreamsLayout.Builder()
                 .path(path)
@@ -100,18 +96,18 @@ public final class LogQueueDepthCommand implements Command
         long consumerAt = buffer.consumerPosition();
         long producerAt = buffer.producerPosition();
 
-        queues.add(String.format("%s.%s %d\n ", name, type, producerAt - consumerAt));
+        out.printf("%s.%s %d\n ", name, type, producerAt - consumerAt);
     }
 
-    public void invoke()
+    @Override
+    public void run()
     {
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             files.filter(this::isStreamsFile)
                  .peek(this::onDiscovered)
                  .forEach(this::displayQueueDepth);
-            System.out.println(queues.toString().replaceAll("\n", " "));
-            queues.clear();
+            System.out.print("\n");
         }
         catch (IOException ex)
         {

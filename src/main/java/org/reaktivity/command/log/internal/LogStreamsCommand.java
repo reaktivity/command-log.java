@@ -30,7 +30,7 @@ import org.agrona.concurrent.IdleStrategy;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.nukleus.Configuration;
 
-public final class LogStreamsCommand implements Command
+public final class LogStreamsCommand implements Runnable
 {
     private static final Pattern SENDER_NAME = Pattern.compile("([^#]+).*");
 
@@ -94,7 +94,8 @@ public final class LogStreamsCommand implements Command
         }
     }
 
-    public void invoke()
+    @Override
+    public void run()
     {
         try (Stream<Path> files = Files.walk(directory, 3))
         {
