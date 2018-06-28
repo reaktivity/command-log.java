@@ -23,8 +23,10 @@ import org.reaktivity.nukleus.Configuration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.stream.Stream;
 
 public final class LogQueueDepthCommand implements Command
@@ -36,6 +38,7 @@ public final class LogQueueDepthCommand implements Command
     private final long streamsCapacity;
     private final long throttleCapacity;
     private final HashMap<Path, StreamsLayout> pathStreamsLayout;
+    private final List<String> queues;
 
     public LogQueueDepthCommand(
         Configuration config,
@@ -48,6 +51,7 @@ public final class LogQueueDepthCommand implements Command
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
         this.pathStreamsLayout = new LinkedHashMap<>();
+        this.queues = new ArrayList<>();
     }
 
     private boolean isStreamsFile(
@@ -96,7 +100,7 @@ public final class LogQueueDepthCommand implements Command
         long consumerAt = buffer.consumerPosition();
         long producerAt = buffer.producerPosition();
 
-        out.printf("%s.%s %d\n ", name, type, producerAt - consumerAt);
+        queues.add(String.format("%s.%s %d\n ", name, type, producerAt - consumerAt));
     }
 
     public void invoke()
@@ -106,6 +110,8 @@ public final class LogQueueDepthCommand implements Command
             files.filter(this::isStreamsFile)
                  .peek(this::onDiscovered)
                  .forEach(this::displayQueueDepth);
+            System.out.println(queues.toString().replaceAll("\n", " "));
+            queues.clear();
         }
         catch (IOException ex)
         {

@@ -18,8 +18,10 @@ package org.reaktivity.command.log.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -37,7 +39,7 @@ public final class LogCountersCommand implements Command
     private final int counterValuesBufferCapacity;
     private final Logger out;
     private final HashMap<Path, CountersManager> pathCountersManager;
-
+    private final List<String> counters;
     LogCountersCommand(
         Configuration config,
         Logger out,
@@ -51,6 +53,7 @@ public final class LogCountersCommand implements Command
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
         this.pathCountersManager = new LinkedHashMap<>();
+        this.counters = new ArrayList<>();
     }
 
     private boolean isControlFile(
@@ -75,7 +78,7 @@ public final class LogCountersCommand implements Command
     {
         String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
         CountersManager manager = pathCountersManager.computeIfAbsent(controlPath, this::initializeCountersManager);
-        manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
+        manager.forEach((id, name) -> counters.add(String.format("%s.%s %d\n", owner, name, manager.getCounterValue(id))));
     }
 
     private CountersManager initializeCountersManager(Path path)
@@ -99,6 +102,8 @@ public final class LogCountersCommand implements Command
             files.filter(this::isControlFile)
                  .peek(this::onDiscovered)
                  .forEach(this::counters);
+            System.out.println(counters.toString().replaceAll("\n", " "));
+            counters.clear();
         }
         catch (IOException ex)
         {
