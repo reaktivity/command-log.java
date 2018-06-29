@@ -107,7 +107,7 @@ public final class LogQueueDepthCommand implements Runnable
             files.filter(this::isStreamsFile)
                  .peek(this::onDiscovered)
                  .forEach(this::displayQueueDepth);
-            System.out.print("\n");
+            out.printf("\n");
         }
         catch (IOException ex)
         {

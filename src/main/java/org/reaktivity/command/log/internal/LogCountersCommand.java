@@ -99,7 +99,7 @@ public final class LogCountersCommand implements Runnable
             files.filter(this::isControlFile)
                  .peek(this::onDiscovered)
                  .forEach(this::counters);
-            System.out.print("\n");
+            out.printf("\n");
         }
         catch (IOException ex)
         {
