@@ -104,7 +104,6 @@ public final class LogQueueDepthCommand implements Runnable
     {
         try (Stream<Path> files = Files.walk(directory, 3))
         {
-            System.out.print("\n");
             files.filter(this::isStreamsFile)
                  .peek(this::onDiscovered)
                  .forEach(this::displayQueueDepth);
