@@ -71,13 +71,13 @@ public final class LogQueueDepthCommand implements Runnable
         Path path)
     {
 
-        StreamsLayout layout = layoutsByPath.computeIfAbsent(path, this::newStreamsManager);
+        StreamsLayout layout = layoutsByPath.computeIfAbsent(path, this::newStreamsLayout);
         String name = path.getName(path.getNameCount() - 1).toString();
         displayQueueDepth(name, "streams", layout.streamsBuffer());
         displayQueueDepth(name, "throttle", layout.throttleBuffer());
     }
 
-    private StreamsLayout newStreamsManager(Path path)
+    private StreamsLayout newStreamsLayout(Path path)
     {
         return new StreamsLayout.Builder()
                 .path(path)
