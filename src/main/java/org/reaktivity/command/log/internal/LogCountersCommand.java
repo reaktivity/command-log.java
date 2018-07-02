@@ -18,16 +18,15 @@ package org.reaktivity.command.log.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.stream.Stream;
-
 import org.agrona.LangUtil;
 import org.agrona.concurrent.status.CountersManager;
 import org.reaktivity.command.log.internal.layouts.ControlLayout;
 import org.reaktivity.nukleus.Configuration;
 
-public final class LogCountersCommand implements Command
+public final class LogCountersCommand implements Runnable
 {
     private final Path directory;
     private final boolean verbose;
@@ -36,7 +35,7 @@ public final class LogCountersCommand implements Command
     private final int counterLabelsBufferCapacity;
     private final int counterValuesBufferCapacity;
     private final Logger out;
-    private final HashMap<Path, CountersManager> pathCountersManager;
+    private final Map<Path, CountersManager> countersByPath;
 
     LogCountersCommand(
         Configuration config,
@@ -50,7 +49,7 @@ public final class LogCountersCommand implements Command
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
         this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
-        this.pathCountersManager = new LinkedHashMap<>();
+        this.countersByPath = new LinkedHashMap<>();
     }
 
     private boolean isControlFile(
@@ -74,11 +73,11 @@ public final class LogCountersCommand implements Command
         Path controlPath)
     {
         String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
-        CountersManager manager = pathCountersManager.computeIfAbsent(controlPath, this::initializeCountersManager);
+        CountersManager manager = countersByPath.computeIfAbsent(controlPath, this::newCountersManager);
         manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
     }
 
-    private CountersManager initializeCountersManager(Path path)
+    private CountersManager newCountersManager(Path path)
     {
         ControlLayout layout = new ControlLayout.Builder()
                 .controlPath(path)
@@ -92,13 +91,15 @@ public final class LogCountersCommand implements Command
         return new CountersManager(layout.counterLabelsBuffer(), layout.counterValuesBuffer());
     }
 
-    public void invoke()
+    @Override
+    public void run()
     {
         try (Stream<Path> files = Files.walk(directory, 2))
         {
             files.filter(this::isControlFile)
                  .peek(this::onDiscovered)
                  .forEach(this::counters);
+            out.printf("\n");
         }
         catch (IOException ex)
         {

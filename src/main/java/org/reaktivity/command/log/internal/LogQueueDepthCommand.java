@@ -23,11 +23,11 @@ import org.reaktivity.nukleus.Configuration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
-public final class LogQueueDepthCommand implements Command
+public final class LogQueueDepthCommand implements Runnable
 {
     private final Path directory;
     private final boolean verbose;
@@ -35,7 +35,7 @@ public final class LogQueueDepthCommand implements Command
 
     private final long streamsCapacity;
     private final long throttleCapacity;
-    private final HashMap<Path, StreamsLayout> pathStreamsLayout;
+    private final Map<Path, StreamsLayout> layoutsByPath;
 
     public LogQueueDepthCommand(
         Configuration config,
@@ -47,7 +47,7 @@ public final class LogQueueDepthCommand implements Command
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
-        this.pathStreamsLayout = new LinkedHashMap<>();
+        this.layoutsByPath = new LinkedHashMap<>();
     }
 
     private boolean isStreamsFile(
@@ -71,13 +71,13 @@ public final class LogQueueDepthCommand implements Command
         Path path)
     {
 
-        StreamsLayout layout = pathStreamsLayout.computeIfAbsent(path, this::initializeStreamLayout);
+        StreamsLayout layout = layoutsByPath.computeIfAbsent(path, this::newStreamsLayout);
         String name = path.getName(path.getNameCount() - 1).toString();
         displayQueueDepth(name, "streams", layout.streamsBuffer());
         displayQueueDepth(name, "throttle", layout.throttleBuffer());
     }
 
-    private StreamsLayout initializeStreamLayout(Path path)
+    private StreamsLayout newStreamsLayout(Path path)
     {
         return new StreamsLayout.Builder()
                 .path(path)
@@ -99,13 +99,15 @@ public final class LogQueueDepthCommand implements Command
         out.printf("%s.%s %d\n ", name, type, producerAt - consumerAt);
     }
 
-    public void invoke()
+    @Override
+    public void run()
     {
         try (Stream<Path> files = Files.walk(directory, 3))
         {
             files.filter(this::isStreamsFile)
                  .peek(this::onDiscovered)
                  .forEach(this::displayQueueDepth);
+            out.printf("\n");
         }
         catch (IOException ex)
         {
