@@ -73,11 +73,11 @@ public final class LogCountersCommand implements Runnable
         Path controlPath)
     {
         String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
-        CountersManager manager = countersByPath.computeIfAbsent(controlPath, this::newCounterManager);
+        CountersManager manager = countersByPath.computeIfAbsent(controlPath, this::newCountersManager);
         manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
     }
 
-    private CountersManager newCounterManager(Path path)
+    private CountersManager newCountersManager(Path path)
     {
         ControlLayout layout = new ControlLayout.Builder()
                 .controlPath(path)

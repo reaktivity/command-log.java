@@ -35,7 +35,7 @@ public final class LogQueueDepthCommand implements Runnable
 
     private final long streamsCapacity;
     private final long throttleCapacity;
-    private final Map<Path, StreamsLayout> pathStreamsLayout;
+    private final Map<Path, StreamsLayout> layoutsByPath;
 
     public LogQueueDepthCommand(
         Configuration config,
@@ -47,7 +47,7 @@ public final class LogQueueDepthCommand implements Runnable
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
-        this.pathStreamsLayout = new LinkedHashMap<>();
+        this.layoutsByPath = new LinkedHashMap<>();
     }
 
     private boolean isStreamsFile(
@@ -71,13 +71,13 @@ public final class LogQueueDepthCommand implements Runnable
         Path path)
     {
 
-        StreamsLayout layout = pathStreamsLayout.computeIfAbsent(path, this::newCountersManager);
+        StreamsLayout layout = layoutsByPath.computeIfAbsent(path, this::newStreamsManager);
         String name = path.getName(path.getNameCount() - 1).toString();
         displayQueueDepth(name, "streams", layout.streamsBuffer());
         displayQueueDepth(name, "throttle", layout.throttleBuffer());
     }
 
-    private StreamsLayout newCountersManager(Path path)
+    private StreamsLayout newStreamsManager(Path path)
     {
         return new StreamsLayout.Builder()
                 .path(path)
