@@ -18,6 +18,7 @@ package org.reaktivity.command.log.internal;
 import static org.apache.commons.cli.Option.builder;
 
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -62,7 +63,7 @@ public final class LogCommand
 
             final Configuration config = new LogCommandConfiguration(properties);
 
-            Command command = null;
+            Runnable command = null;
 
             if ("streams".equals(type) || "streams-nowait".equals(type))
             {
@@ -83,8 +84,8 @@ public final class LogCommand
 
             do
             {
-                command.invoke();
-                Thread.sleep(interval * 1000);
+                command.run();
+                Thread.sleep(TimeUnit.SECONDS.toMillis(interval));
             } while (interval > 0);
         }
     }
