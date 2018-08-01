@@ -46,12 +46,19 @@
     <nukleus.version>0.22</nukleus.version>
     <nukleus.plugin.version>0.25</nukleus.plugin.version>
     <nukleus.http.spec.version>0.56</nukleus.http.spec.version>
+    <nukleus.tcp.spec.version>0.38</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.reaktivity</groupId>
+      <artifactId>nukleus-tcp.spec</artifactId>
+      <version>${nukleus.tcp.spec.version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.reaktivity</groupId>
       <artifactId>nukleus-http.spec</artifactId>
@@ -77,7 +84,7 @@
         <artifactId>nukleus-maven-plugin</artifactId>
         <version>${nukleus.plugin.version}</version>
         <configuration>
-          <scopeNames>core http::stream</scopeNames>
+          <scopeNames>core http::stream tcp::stream</scopeNames>
           <packageName>org.reaktivity.command.log.internal.types</packageName>
         </configuration>
         <executions>

@@ -16,21 +16,27 @@
 package org.reaktivity.command.log.internal;
 
 import static java.lang.String.format;
+import static java.net.InetAddress.getByAddress;
 
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.function.LongPredicate;
+import java.util.function.Predicate;
+
+import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.OctetsFW;
+import org.reaktivity.command.log.internal.types.TcpAddressFW;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
 import org.reaktivity.command.log.internal.types.stream.EndFW;
 import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
+import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
-
-import java.util.function.LongPredicate;
-import java.util.function.Predicate;
 
 public final class LoggableStream implements AutoCloseable
 {
@@ -42,6 +48,7 @@ public final class LoggableStream implements AutoCloseable
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
 
+    private final TcpBeginExFW tcpBeginExRO = new TcpBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
     private final String streamFormat;
@@ -121,38 +128,48 @@ public final class LoggableStream implements AutoCloseable
         final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
 
-        OctetsFW extension = begin.extension();
-
         out.printf(streamFormat, timestamp, traceId, streamId,
                    format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
 
-        if (verbose && sourceName.startsWith("http"))
+        OctetsFW extension = begin.extension();
+        if (verbose && extension.sizeof() != 0)
         {
-            final boolean initial = (sourceRef != 0);
-            final long typedRef = (sourceRef != 0) ? sourceRef : correlationId;
-            final Predicate<String> isHttp = n -> n.startsWith("http");
-            final LongPredicate isClient = r -> r > 0L && (r & 0x01L) != 0x00L;
-            final LongPredicate isServer = r -> r > 0L && (r & 0x01L) == 0x00L;
-            final LongPredicate isProxy = r -> r < 0L && (r & 0x01L) == 0x00L;
-            final boolean isHttpClientInitial = initial && isClient.test(typedRef) && isHttp.test(targetName);
-            final boolean isHttpClientReply = !initial && isClient.test(typedRef) && isHttp.test(sourceName);
-            final boolean isHttpServerInitial = initial && isServer.test(typedRef) && isHttp.test(sourceName);
-            final boolean isHttpServerReply = !initial && isServer.test(typedRef) && isHttp.test(targetName);
-            final boolean isHttpProxyInitial = initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
-                    || isHttp.test(targetName));
-            final boolean isHttpProxyReply = !initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
-                    || isHttp.test(targetName));
-
-            if (isHttpClientInitial
-                    || isHttpServerReply
-                    || isHttpClientReply
-                    || isHttpServerInitial
-                    || isHttpProxyInitial
-                    | isHttpProxyReply)
+            if (sourceName.equals("tcp") || targetName.equals("tcp"))
             {
-                HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-                httpBeginEx.headers()
-                        .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+                TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                InetSocketAddress localAddress = toInetSocketAddress(tcpBeginEx.localAddress(), tcpBeginEx.localPort());
+                InetSocketAddress remoteAddress = toInetSocketAddress(tcpBeginEx.remoteAddress(), tcpBeginEx.remotePort());
+                out.printf("%s\t%s\n", localAddress, remoteAddress);
+            }
+
+            if (sourceName.startsWith("http"))
+            {
+                final boolean initial = (sourceRef != 0);
+                final long typedRef = (sourceRef != 0) ? sourceRef : correlationId;
+                final Predicate<String> isHttp = n -> n.startsWith("http");
+                final LongPredicate isClient = r -> r > 0L && (r & 0x01L) != 0x00L;
+                final LongPredicate isServer = r -> r > 0L && (r & 0x01L) == 0x00L;
+                final LongPredicate isProxy = r -> r < 0L && (r & 0x01L) == 0x00L;
+                final boolean isHttpClientInitial = initial && isClient.test(typedRef) && isHttp.test(targetName);
+                final boolean isHttpClientReply = !initial && isClient.test(typedRef) && isHttp.test(sourceName);
+                final boolean isHttpServerInitial = initial && isServer.test(typedRef) && isHttp.test(sourceName);
+                final boolean isHttpServerReply = !initial && isServer.test(typedRef) && isHttp.test(targetName);
+                final boolean isHttpProxyInitial = initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
+                        || isHttp.test(targetName));
+                final boolean isHttpProxyReply = !initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
+                        || isHttp.test(targetName));
+
+                if (isHttpClientInitial
+                        || isHttpServerReply
+                        || isHttpClientReply
+                        || isHttpServerInitial
+                        || isHttpProxyInitial
+                        | isHttpProxyReply)
+                {
+                    HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                    httpBeginEx.headers()
+                            .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+                }
             }
         }
     }
@@ -234,5 +251,47 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(format(throttleFormat, timestamp, traceId, streamId,
                           format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
+    }
+
+    private InetSocketAddress toInetSocketAddress(
+        TcpAddressFW tcpAddress,
+        int tcpPort)
+    {
+        InetSocketAddress socketAddress = null;
+
+        try
+        {
+            byte[] address;
+
+            switch (tcpAddress.kind())
+            {
+            case TcpAddressFW.KIND_IPV4_ADDRESS:
+                address = new byte[4];
+                tcpAddress.ipv4Address().get((b, o, l) ->
+                {
+                    b.getBytes(o, address); return address;
+                });
+                socketAddress = new InetSocketAddress(getByAddress(address), tcpPort);
+                break;
+            case TcpAddressFW.KIND_IPV6_ADDRESS:
+                address = new byte[16];
+                tcpAddress.ipv4Address().get((b, o, l) ->
+                {
+                    b.getBytes(o, address); return address;
+                });
+                socketAddress = new InetSocketAddress(getByAddress(address), tcpPort);
+                break;
+            case TcpAddressFW.KIND_HOST:
+                String hostName = tcpAddress.host().asString();
+                socketAddress = new InetSocketAddress(hostName, tcpPort);
+                break;
+            }
+        }
+        catch (UnknownHostException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+
+        return socketAddress;
     }
 }
