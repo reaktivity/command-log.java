@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import org.agrona.LangUtil;
 import org.agrona.MutableDirectBuffer;
+import org.agrona.collections.Long2LongHashMap;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.OctetsFW;
@@ -59,6 +60,7 @@ public final class LoggableStream implements AutoCloseable
     private final RingBufferSpy throttleBuffer;
     private final Logger out;
     private final boolean verbose;
+    private final Long2LongHashMap budgets;
 
     LoggableStream(
         String receiver,
@@ -76,6 +78,7 @@ public final class LoggableStream implements AutoCloseable
         this.targetName = receiver;
         this.out = logger;
         this.verbose = verbose;
+        this.budgets = new Long2LongHashMap(-1L);
     }
 
     int process()
@@ -128,6 +131,15 @@ public final class LoggableStream implements AutoCloseable
         final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
 
+        if (verbose)
+        {
+            budgets.put(streamId, 0L);
+        }
+
+        if (verbose)
+        {
+            out.printf(format("[budget %05d] ", budgets.get(streamId)));
+        }
         out.printf(streamFormat, timestamp, traceId, streamId,
                    format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
 
@@ -184,6 +196,17 @@ public final class LoggableStream implements AutoCloseable
         final int padding = data.padding();
         final long authorization = data.authorization();
 
+        if (verbose)
+        {
+            long budget = budgets.get(streamId);
+            budget -= length + padding;
+            budgets.put(streamId, budget);
+        }
+
+        if (verbose)
+        {
+            out.printf(format("[budget %05d] ", budgets.get(streamId)));
+        }
         out.printf(format(streamFormat, timestamp, traceId, streamId,
                           format("DATA [%d] [%d] [0x%016x]", length, padding, authorization)));
     }
@@ -196,6 +219,10 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = end.trace();
         final long authorization = end.authorization();
 
+        if (verbose)
+        {
+            out.printf(format("[budget %05d] ", budgets.get(streamId)));
+        }
         out.printf(format(streamFormat, timestamp, traceId, streamId, format("END [0x%016x]", authorization)));
     }
 
@@ -207,6 +234,10 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = abort.trace();
         final long authorization = abort.authorization();
 
+        if (verbose)
+        {
+            out.printf(format("[budget %05d] ", budgets.get(streamId)));
+        }
         out.printf(format(streamFormat, timestamp, traceId, streamId, format("ABORT [0x%016x]", authorization)));
     }
 
@@ -236,6 +267,10 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = reset.streamId();
         final long traceId = reset.trace();
 
+        if (verbose)
+        {
+            out.printf(format("[budget %05d] ", budgets.get(streamId)));
+        }
         out.printf(format(throttleFormat, timestamp, traceId, streamId, "RESET"));
     }
 
@@ -249,6 +284,17 @@ public final class LoggableStream implements AutoCloseable
         final int padding = window.padding();
         final long groupId = window.groupId();
 
+        if (verbose)
+        {
+            long budget = budgets.get(streamId);
+            budget += credit;
+            budgets.put(streamId, budget);
+        }
+
+        if (verbose)
+        {
+            out.printf(format("[budget %05d] ", budgets.get(streamId)));
+        }
         out.printf(format(throttleFormat, timestamp, traceId, streamId,
                           format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
     }
