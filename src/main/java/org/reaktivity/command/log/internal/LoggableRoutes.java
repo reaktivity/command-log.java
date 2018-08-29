@@ -27,6 +27,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.reaktivity.command.log.internal.layouts.RoutesLayout;
 import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.control.RouteFW;
+import org.reaktivity.command.log.internal.types.control.TlsRouteExFW;
 import org.reaktivity.command.log.internal.types.state.RouteTableFW;
 
 public final class LoggableRoutes implements AutoCloseable
@@ -106,14 +107,27 @@ public final class LoggableRoutes implements AutoCloseable
             if (!loggedRoutes.contains(correlationId))
             {
                 workCnt.incrementAndGet();
-                out.printf(format("%15s   %-10s %-20s [0x%016X] %-20s [0x%016X] [0x%016X]\n",
-                                format("%s#%d", nukleusName, correlationId),
-                                role,
-                                source,
-                                sourceRef,
-                                target,
-                                targetRef,
-                                authorization));
+
+                String extension = extension(route);
+                out.printf(format(
+                        "{" +
+                        "\"$nukleus\":\"%s\", " +
+                        "\"$id\":%d, " +
+                        "\"role\":\"%s\", " +
+                        "\"source\":\"%s\", " +
+                        "\"sourceRef\":%d, " +
+                        "\"target\":\"%s\", " +
+                        "\"targetRef\":%d, " +
+                        "\"authorization\":%d%s}\n",
+                        nukleusName,
+                        correlationId,
+                        role,
+                        source,
+                        sourceRef,
+                        target,
+                        targetRef,
+                        authorization,
+                        extension == null ? "" : String.format(", \"extension\": %s", extension)));
                 loggedRoutes.add(correlationId);
                 workCnt.incrementAndGet();
             }
@@ -129,6 +143,30 @@ public final class LoggableRoutes implements AutoCloseable
             });
         }
         return workCnt.get();
+    }
+
+    private String extension(RouteFW route)
+    {
+        String extension = null;
+        if ("tls".equals(nukleusName))
+        {
+            TlsRouteExFW ext = new TlsRouteExFW();
+            final int index = route.extension().offset();
+            ext.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
+            final String applicationProtocol = ext.applicationProtocol().asString();
+            final String hostname = ext.hostname().asString();
+            final String store = ext.store().asString();
+            extension = String.format(
+            "{" +
+            "\"store\":\"%s\"," +
+            "\"hostname\":\"%s\"," +
+            "\"applicationProtocol\":\"%s\"" +
+            "}",
+            hostname,
+            applicationProtocol,
+            store);
+        }
+        return extension;
     }
 
     @Override

@@ -74,7 +74,12 @@ public final class LogCountersCommand implements Runnable
     {
         String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
         CountersManager manager = countersByPath.computeIfAbsent(controlPath, this::newCountersManager);
-        manager.forEach((id, name) -> out.printf("%s.%s %d\n", owner, name, manager.getCounterValue(id)));
+        manager.forEach((id, name) -> out.printf(
+                "{" +
+                "\"nukleus\": \"%s\"," +
+                "\"name\": \"%s\"," +
+                "\"value\":%d" +
+                "}\n", owner, name, manager.getCounterValue(id)));
     }
 
     private CountersManager newCountersManager(Path path)
