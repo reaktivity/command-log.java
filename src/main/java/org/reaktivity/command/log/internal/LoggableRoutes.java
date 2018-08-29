@@ -162,9 +162,10 @@ public final class LoggableRoutes implements AutoCloseable
             "\"hostname\":\"%s\"," +
             "\"applicationProtocol\":\"%s\"" +
             "}",
+            store,
             hostname,
-            applicationProtocol,
-            store);
+            applicationProtocol
+            );
         }
         return extension;
     }
