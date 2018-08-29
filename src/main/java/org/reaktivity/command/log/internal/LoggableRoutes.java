@@ -108,8 +108,7 @@ public final class LoggableRoutes implements AutoCloseable
             {
                 workCnt.incrementAndGet();
 
-                String extension = null;
-                extension = extension(route, extension);
+                String extension = extension(route);
                 out.printf(format(
                         "{" +
                         "\"$nukleus\":\"%s\", " +
@@ -146,8 +145,9 @@ public final class LoggableRoutes implements AutoCloseable
         return workCnt.get();
     }
 
-    private String extension(RouteFW route, String extension)
+    private String extension(RouteFW route)
     {
+        String extension = null;
         if ("tls".equals(nukleusName))
         {
             TlsRouteExFW ext = new TlsRouteExFW();
