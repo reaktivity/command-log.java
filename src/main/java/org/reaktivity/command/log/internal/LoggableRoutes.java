@@ -109,24 +109,7 @@ public final class LoggableRoutes implements AutoCloseable
                 workCnt.incrementAndGet();
 
                 String extension = null;
-                if ("tls".equals(nukleusName))
-                {
-                    TlsRouteExFW ext = new TlsRouteExFW();
-                    final int index = route.extension().offset();
-                    ext.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
-                    final String applicationProtocol = ext.applicationProtocol().asString();
-                    final String hostname = ext.hostname().asString();
-                    final String store = ext.store().asString();
-                    extension = String.format(
-                    "{" +
-                    "\"store\":\"%s\"," +
-                    "\"hostname\":\"%s\"," +
-                    "\"applicationProtocol\":\"%s\"" +
-                    "}",
-                    hostname,
-                    applicationProtocol,
-                    store);
-                }
+                extension = extension(route, extension);
                 out.printf(format(
                         "{" +
                         "\"$nukleus\":\"%s\", " +
@@ -161,6 +144,29 @@ public final class LoggableRoutes implements AutoCloseable
             });
         }
         return workCnt.get();
+    }
+
+    private String extension(RouteFW route, String extension)
+    {
+        if ("tls".equals(nukleusName))
+        {
+            TlsRouteExFW ext = new TlsRouteExFW();
+            final int index = route.extension().offset();
+            ext.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
+            final String applicationProtocol = ext.applicationProtocol().asString();
+            final String hostname = ext.hostname().asString();
+            final String store = ext.store().asString();
+            extension = String.format(
+            "{" +
+            "\"store\":\"%s\"," +
+            "\"hostname\":\"%s\"," +
+            "\"applicationProtocol\":\"%s\"" +
+            "}",
+            hostname,
+            applicationProtocol,
+            store);
+        }
+        return extension;
     }
 
     @Override

@@ -96,7 +96,7 @@ public final class LogQueueDepthCommand implements Runnable
         long consumerAt = buffer.consumerPosition();
         long producerAt = buffer.producerPosition();
 
-        out.printf("{\"%s.%s\":%d}\n", name, type, producerAt - consumerAt);
+        out.printf("{\"nukleus\":\"%s\", \"type\":\"%s\", \"depth\":%d}\n", name, type, producerAt - consumerAt);
     }
 
     @Override
