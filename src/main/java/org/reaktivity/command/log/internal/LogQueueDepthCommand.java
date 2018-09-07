@@ -72,9 +72,10 @@ public final class LogQueueDepthCommand implements Runnable
     {
 
         StreamsLayout layout = layoutsByPath.computeIfAbsent(path, this::newStreamsLayout);
-        String name = path.getName(path.getNameCount() - 1).toString();
-        displayQueueDepth(name, "streams", layout.streamsBuffer());
-        displayQueueDepth(name, "throttle", layout.throttleBuffer());
+        String nukleus = path.getName(path.getNameCount() - 3).toString();
+        String source = path.getName(path.getNameCount() - 1).toString();
+        displayQueueDepth(nukleus, source, "streams", layout.streamsBuffer());
+        displayQueueDepth(nukleus, source, "throttle", layout.throttleBuffer());
     }
 
     private StreamsLayout newStreamsLayout(Path path)
@@ -88,7 +89,8 @@ public final class LogQueueDepthCommand implements Runnable
     }
 
     private void displayQueueDepth(
-        String name,
+        String nukleus,
+        String source,
         String type,
         RingBufferSpy buffer)
     {
@@ -96,7 +98,8 @@ public final class LogQueueDepthCommand implements Runnable
         long consumerAt = buffer.consumerPosition();
         long producerAt = buffer.producerPosition();
 
-        out.printf("{\"nukleus\":\"%s\", \"type\":\"%s\", \"depth\":%d}\n", name, type, producerAt - consumerAt);
+        out.printf("{\"nukleus\":\"%s\", \"source\":\"%s\", \"type\":\"%s\", \"depth\":%d}\n",
+                nukleus, source, type, producerAt - consumerAt);
     }
 
     @Override
