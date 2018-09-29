@@ -78,7 +78,7 @@ public final class LogCountersCommand implements Runnable
                 "{" +
                 "\"nukleus\": \"%s\"," +
                 "\"name\": \"%s\"," +
-                "\"value\":%d" +
+                "\"value\":%,d" +
                 "}\n", owner, name, manager.getCounterValue(id)));
     }
 
