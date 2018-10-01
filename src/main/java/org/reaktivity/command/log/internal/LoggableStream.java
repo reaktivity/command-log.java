@@ -188,10 +188,11 @@ public final class LoggableStream implements AutoCloseable
         final int length = data.length();
         final int padding = data.padding();
         final long authorization = data.authorization();
+        final byte flags = (byte) (data.flags() & 0xFF);
         final long budget = budgets.computeIfPresent(streamId, (i, b) -> b - (length + padding));
 
         out.printf(format(streamFormat, timestamp, budget, traceId, streamId,
-                          format("DATA [%d] [%d] [0x%016x]", length, padding, authorization)));
+                          format("DATA [%d] [%d] [%x] [0x%016x]", length, padding, flags, authorization)));
     }
 
     private void handleEnd(
