@@ -43,7 +43,7 @@ public final class LogCommand
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
-        options.addOption(builder("s").longOpt("separator").desc("include thousands separator").build());
+        options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
