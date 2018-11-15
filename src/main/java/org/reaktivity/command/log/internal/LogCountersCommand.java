@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The Reaktivity Project
+ * Copyright 2016-2018 The Reaktivity Project
  *
  * The Reaktivity Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -30,6 +30,7 @@ public final class LogCountersCommand implements Runnable
 {
     private final Path directory;
     private final boolean verbose;
+    private final boolean separator;
     private final int commandBufferCapacity;
     private final int responseBufferCapacity;
     private final int counterLabelsBufferCapacity;
@@ -40,10 +41,12 @@ public final class LogCountersCommand implements Runnable
     LogCountersCommand(
         Configuration config,
         Logger out,
-        boolean verbose)
+        boolean verbose,
+        boolean separator)
     {
         this.directory = config.directory();
         this.verbose = verbose;
+        this.separator = separator;
         this.commandBufferCapacity = config.commandBufferCapacity();
         this.responseBufferCapacity = config.responseBufferCapacity();
         this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
@@ -74,11 +77,13 @@ public final class LogCountersCommand implements Runnable
     {
         String owner = controlPath.getName(controlPath.getNameCount() - 2).toString();
         CountersManager manager = countersByPath.computeIfAbsent(controlPath, this::newCountersManager);
+        final String valueFormat = separator ? ",d" : "d";
+
         manager.forEach((id, name) -> out.printf(
                 "{" +
                 "\"nukleus\": \"%s\"," +
                 "\"name\": \"%s\"," +
-                "\"value\":%,d" +
+                "\"value\":%" + valueFormat +
                 "}\n", owner, name, manager.getCounterValue(id)));
     }
 

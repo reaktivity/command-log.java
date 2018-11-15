@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The Reaktivity Project
+ * Copyright 2016-2018 The Reaktivity Project
  *
  * The Reaktivity Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -31,6 +31,7 @@ public final class LogQueueDepthCommand implements Runnable
 {
     private final Path directory;
     private final boolean verbose;
+    private final boolean separator;
     private final Logger out;
 
     private final long streamsCapacity;
@@ -40,11 +41,13 @@ public final class LogQueueDepthCommand implements Runnable
     public LogQueueDepthCommand(
         Configuration config,
         Logger out,
-        boolean verbose)
+        boolean verbose,
+        boolean separator)
     {
         this.directory = config.directory();
         this.out = out;
         this.verbose = verbose;
+        this.separator = separator;
         this.streamsCapacity = config.streamsBufferCapacity();
         this.throttleCapacity = config.throttleBufferCapacity();
         this.layoutsByPath = new LinkedHashMap<>();
@@ -98,7 +101,9 @@ public final class LogQueueDepthCommand implements Runnable
         long consumerAt = buffer.consumerPosition();
         long producerAt = buffer.producerPosition();
 
-        out.printf("{\"nukleus\":\"%s\", \"source\":\"%s\", \"type\":\"%s\", \"depth\":%d}\n",
+        final String valueFormat = separator ? ",d" : "d";
+
+        out.printf("{\"nukleus\":\"%s\", \"source\":\"%s\", \"type\":\"%s\", \"depth\":%" + valueFormat + "}\n",
                 nukleus, source, type, producerAt - consumerAt);
     }
 
