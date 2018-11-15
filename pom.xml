@@ -43,11 +43,11 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <nukleus.version>0.22</nukleus.version>
+    <nukleus.version>0.23</nukleus.version>
     <nukleus.plugin.version>0.25</nukleus.plugin.version>
-    <nukleus.http.spec.version>0.56</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>0.26</nukleus.tls.spec.version>
-    <nukleus.tcp.spec.version>0.38</nukleus.tcp.spec.version>
+    <nukleus.http.spec.version>0.60</nukleus.http.spec.version>
+    <nukleus.tls.spec.version>0.27</nukleus.tls.spec.version>
+    <nukleus.tcp.spec.version>0.40</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
