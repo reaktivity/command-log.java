@@ -144,7 +144,7 @@ public final class LoggableStream implements AutoCloseable
                 TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
                 InetSocketAddress localAddress = toInetSocketAddress(tcpBeginEx.localAddress(), tcpBeginEx.localPort());
                 InetSocketAddress remoteAddress = toInetSocketAddress(tcpBeginEx.remoteAddress(), tcpBeginEx.remotePort());
-                out.printf("%s\t%s\n", localAddress, remoteAddress);
+                out.printf("[%d] %s\t%s\n", timestamp, localAddress, remoteAddress);
             }
 
             if (sourceName.startsWith("http"))
@@ -173,7 +173,7 @@ public final class LoggableStream implements AutoCloseable
                 {
                     HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
                     httpBeginEx.headers()
-                            .forEach(h -> out.printf("%s: %s\n", h.name().asString(), h.value().asString()));
+                            .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
                 }
             }
         }
