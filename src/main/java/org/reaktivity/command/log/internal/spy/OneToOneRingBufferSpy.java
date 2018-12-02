@@ -22,16 +22,15 @@ import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.messageTypeId;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.recordLength;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.HEAD_POSITION_OFFSET;
+import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.checkCapacity;
-import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
-
 
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.MessageHandler;
+import org.reaktivity.nukleus.function.MessagePredicate;
 
 public class OneToOneRingBufferSpy implements RingBufferSpy
 {
@@ -77,14 +76,14 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
 
     @Override
     public int spy(
-        final MessageHandler handler)
+        final MessagePredicate handler)
     {
         return spy(handler, Integer.MAX_VALUE);
     }
 
     @Override
     public int spy(
-        final MessageHandler handler,
+        final MessagePredicate handler,
         final int messageCountLimit)
     {
         int messagesRead = 0;
@@ -120,7 +119,11 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
                 }
 
                 ++messagesRead;
-                handler.onMessage(messageTypeId, buffer, recordIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH);
+                if (!handler.test(messageTypeId, buffer, recordIndex + HEADER_LENGTH, recordLength - HEADER_LENGTH))
+                {
+                    bytesRead -= align(recordLength, ALIGNMENT);
+                    break;
+                }
             }
         }
         finally
