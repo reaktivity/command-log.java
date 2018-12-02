@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
+import org.agrona.collections.Long2LongHashMap;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
@@ -45,7 +46,9 @@ public final class LogStreamsCommand implements Runnable
     private final long throttleCapacity;
     private final boolean continuous;
     private final Logger out;
+    private final Long2LongHashMap timestamps;
 
+    private long nextTimestamp = Long.MAX_VALUE;
 
     LogStreamsCommand(
         Configuration config,
@@ -59,6 +62,7 @@ public final class LogStreamsCommand implements Runnable
         this.throttleCapacity = config.throttleBufferCapacity();
         this.continuous = continuous;
         this.out = out;
+        this.timestamps = new Long2LongHashMap(-1L);
     }
 
     private boolean isStreamsFile(
@@ -82,7 +86,7 @@ public final class LogStreamsCommand implements Runnable
         String receiver = path.getName(path.getNameCount() - 3).toString();
         String sender = sender(path);
 
-        return new LoggableStream(receiver, sender, layout, out, verbose);
+        return new LoggableStream(receiver, sender, layout, out, verbose, timestamps, this::nextTimestamp);
     }
 
     private void onDiscovered(
@@ -125,6 +129,21 @@ public final class LogStreamsCommand implements Runnable
         catch (IOException ex)
         {
             LangUtil.rethrowUnchecked(ex);
+        }
+    }
+
+    private boolean nextTimestamp(
+        final long timestamp)
+    {
+        if (timestamp != nextTimestamp)
+        {
+            nextTimestamp = Math.min(timestamp, nextTimestamp);
+            return false;
+        }
+        else
+        {
+            nextTimestamp = Long.MAX_VALUE;
+            return true;
         }
     }
 

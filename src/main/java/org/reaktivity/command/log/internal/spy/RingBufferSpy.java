@@ -16,12 +16,12 @@
 package org.reaktivity.command.log.internal.spy;
 
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.MessageHandler;
+import org.reaktivity.nukleus.function.MessagePredicate;
 
 public interface RingBufferSpy
 {
-    int spy(MessageHandler handler);
-    int spy(MessageHandler handler, int messageCountLimit);
+    int spy(MessagePredicate handler);
+    int spy(MessagePredicate handler, int messageCountLimit);
 
     long producerPosition();
     long consumerPosition();
