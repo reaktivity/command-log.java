@@ -202,7 +202,7 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = end.streamId();
         final long traceId = end.trace();
         final long authorization = end.authorization();
-        final long budget = budgets.get(streamId);
+        final int budget = (int) budgets.get(streamId);
 
         out.printf(format(streamFormat, timestamp, budget, traceId, streamId, format("END [0x%016x]", authorization)));
     }
@@ -214,7 +214,7 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = abort.streamId();
         final long traceId = abort.trace();
         final long authorization = abort.authorization();
-        final long budget = budgets.get(streamId);
+        final int budget = (int) budgets.get(streamId);
 
         out.printf(format(streamFormat, timestamp, budget, traceId, streamId, format("ABORT [0x%016x]", authorization)));
     }
@@ -244,7 +244,7 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = reset.timestamp();
         final long streamId = reset.streamId();
         final long traceId = reset.trace();
-        final long budget = budgets.get(streamId);
+        final int budget = (int) budgets.get(streamId);
 
         out.printf(format(throttleFormat, timestamp, budget, traceId, streamId, "RESET"));
     }
