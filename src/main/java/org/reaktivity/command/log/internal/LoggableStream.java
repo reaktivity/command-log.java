@@ -61,6 +61,7 @@ public final class LoggableStream implements AutoCloseable
     private final Logger out;
     private final boolean verbose;
     private final Long2LongHashMap budgets;
+    private final Long2LongHashMap timestamps;
 
     LoggableStream(
         String receiver,
@@ -69,8 +70,8 @@ public final class LoggableStream implements AutoCloseable
         Logger logger,
         boolean verbose)
     {
-        this.streamFormat = String.format("[%%d] [0x%%08x] [0x%%016x] [%s -> %s]\t[0x%%016x] %%s\n", sender, receiver);
-        this.throttleFormat = String.format("[%%d] [0x%%08x] [0x%%016x] [%s <- %s]\t[0x%%016x] %%s\n", sender, receiver);
+        this.streamFormat = format("[%%d] [0x%%08x] [0x%%016x] [%s -> %s]\t[0x%%016x] [%%016x] %%s\n", sender, receiver);
+        this.throttleFormat = format("[%%d] [0x%%08x] [0x%%016x] [%s <- %s]\t[0x%%016x] [%%016x] %%s\n", sender, receiver);
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
@@ -79,6 +80,7 @@ public final class LoggableStream implements AutoCloseable
         this.out = logger;
         this.verbose = verbose;
         this.budgets = new Long2LongHashMap(-1L);
+        this.timestamps = new Long2LongHashMap(-1L);
     }
 
     int process()
@@ -131,9 +133,11 @@ public final class LoggableStream implements AutoCloseable
         final long sourceRef = begin.sourceRef();
         final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
-        final long budget = budgets.computeIfAbsent(streamId, id -> 0L);
+        final int budget = (int) budgets.computeIfAbsent(streamId, id -> 0L);
+        final long timeStart = timestamps.computeIfAbsent(streamId, id -> timestamp);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(streamFormat, timestamp, budget, traceId, streamId,
+        out.printf(streamFormat, timestamp, budget, traceId, streamId, timeOffset,
                    format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
 
         OctetsFW extension = begin.extension();
@@ -190,8 +194,10 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
         final long budget = budgets.computeIfPresent(streamId, (i, b) -> b - (length + padding));
+        final long timeStart = timestamps.get(streamId);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, streamId,
+        out.printf(format(streamFormat, timestamp, budget, traceId, streamId, timeOffset,
                           format("DATA [%d] [%d] [%x] [0x%016x]", length, padding, flags, authorization)));
     }
 
@@ -203,8 +209,11 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = end.trace();
         final long authorization = end.authorization();
         final int budget = (int) budgets.get(streamId);
+        final long timeStart = timestamps.get(streamId);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, streamId, format("END [0x%016x]", authorization)));
+        out.printf(format(streamFormat, timestamp, budget, traceId, streamId, timeOffset,
+                format("END [0x%016x]", authorization)));
     }
 
     private void handleAbort(
@@ -215,8 +224,11 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = abort.trace();
         final long authorization = abort.authorization();
         final int budget = (int) budgets.get(streamId);
+        final long timeStart = timestamps.get(streamId);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, streamId, format("ABORT [0x%016x]", authorization)));
+        out.printf(format(streamFormat, timestamp, budget, traceId, streamId, timeOffset,
+                format("ABORT [0x%016x]", authorization)));
     }
 
     private void handleThrottle(
@@ -245,8 +257,10 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = reset.streamId();
         final long traceId = reset.trace();
         final int budget = (int) budgets.get(streamId);
+        final long timeStart = timestamps.get(streamId);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(throttleFormat, timestamp, budget, traceId, streamId, "RESET"));
+        out.printf(format(throttleFormat, timestamp, budget, traceId, streamId, timeOffset, "RESET"));
     }
 
     private void handleWindow(
@@ -259,8 +273,10 @@ public final class LoggableStream implements AutoCloseable
         final int padding = window.padding();
         final long groupId = window.groupId();
         final long budget = budgets.computeIfPresent(streamId, (i, b) -> b + credit);
+        final long timeStart = timestamps.get(streamId);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(throttleFormat, timestamp, budget, traceId, streamId,
+        out.printf(format(throttleFormat, timestamp, budget, traceId, streamId, timeOffset,
                           format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
     }
 
