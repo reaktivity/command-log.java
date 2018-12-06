@@ -43,7 +43,6 @@ public final class LogStreamsCommand implements Runnable
     private final Path directory;
     private final boolean verbose;
     private final long streamsCapacity;
-    private final long throttleCapacity;
     private final boolean continuous;
     private final Logger out;
     private final Long2LongHashMap timestamps;
@@ -59,7 +58,6 @@ public final class LogStreamsCommand implements Runnable
         this.directory = config.directory();
         this.verbose = verbose;
         this.streamsCapacity = config.streamsBufferCapacity();
-        this.throttleCapacity = config.throttleBufferCapacity();
         this.continuous = continuous;
         this.out = out;
         this.timestamps = new Long2LongHashMap(-1L);
@@ -79,7 +77,6 @@ public final class LogStreamsCommand implements Runnable
         StreamsLayout layout = new StreamsLayout.Builder()
                 .path(path)
                 .streamsCapacity(streamsCapacity)
-                .throttleCapacity(throttleCapacity)
                 .readonly(true)
                 .build();
 

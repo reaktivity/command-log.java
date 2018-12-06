@@ -59,7 +59,6 @@ public final class LoggableStream implements AutoCloseable
     private final String targetName;
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
-    private final RingBufferSpy throttleBuffer;
     private final Logger out;
     private final boolean verbose;
     private final Long2LongHashMap budgets;
@@ -76,11 +75,10 @@ public final class LoggableStream implements AutoCloseable
         LongPredicate nextTimestamp)
     {
         this.streamFormat = format("[%%d] [0x%%08x] [0x%%016x] [%s -> %s]\t[0x%%016x] [%%016x] %%s\n", sender, receiver);
-        this.throttleFormat = format("[%%d] [0x%%08x] [0x%%016x] [%s <- %s]\t[0x%%016x] [%%016x] %%s\n", sender, receiver);
+        this.throttleFormat = format("[%%d] [0x%%08x] [0x%%016x] [%s <- %s]\t[0x%%016x] [%%016x] %%s\n", receiver, sender);
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
-        this.throttleBuffer = layout.throttleBuffer();
         this.targetName = receiver;
         this.out = logger;
         this.verbose = verbose;
@@ -91,8 +89,7 @@ public final class LoggableStream implements AutoCloseable
 
     int process()
     {
-        return streamsBuffer.spy(this::handleFrame, 1) +
-                throttleBuffer.spy(this::handleFrame, 1);
+        return streamsBuffer.spy(this::handleFrame, 1);
     }
 
     @Override
@@ -217,7 +214,7 @@ public final class LoggableStream implements AutoCloseable
         final int padding = data.padding();
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
-        final long budget = budgets.computeIfPresent(streamId, (i, b) -> b - (length + padding));
+        final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b - (length + padding));
         final long initialId = streamId & ~0x8000_0000_0000_0000L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
@@ -281,7 +278,7 @@ public final class LoggableStream implements AutoCloseable
         final int credit = window.credit();
         final int padding = window.padding();
         final long groupId = window.groupId();
-        final long budget = budgets.computeIfPresent(streamId, (i, b) -> b + credit);
+        final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b + credit);
         final long initialId = streamId & ~0x8000_0000_0000_0000L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
