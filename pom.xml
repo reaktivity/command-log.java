@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.20</version>
+  <version>0.21</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -153,6 +153,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.1</version>
         <executions>
           <execution>
             <phase>package</phase>

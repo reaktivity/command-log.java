@@ -35,7 +35,6 @@ public final class LogQueueDepthCommand implements Runnable
     private final Logger out;
 
     private final long streamsCapacity;
-    private final long throttleCapacity;
     private final Map<Path, StreamsLayout> layoutsByPath;
 
     public LogQueueDepthCommand(
@@ -49,7 +48,6 @@ public final class LogQueueDepthCommand implements Runnable
         this.verbose = verbose;
         this.separator = separator;
         this.streamsCapacity = config.streamsBufferCapacity();
-        this.throttleCapacity = config.throttleBufferCapacity();
         this.layoutsByPath = new LinkedHashMap<>();
     }
 
@@ -78,15 +76,14 @@ public final class LogQueueDepthCommand implements Runnable
         String nukleus = path.getName(path.getNameCount() - 3).toString();
         String source = path.getName(path.getNameCount() - 1).toString();
         displayQueueDepth(nukleus, source, "streams", layout.streamsBuffer());
-        displayQueueDepth(nukleus, source, "throttle", layout.throttleBuffer());
     }
 
-    private StreamsLayout newStreamsLayout(Path path)
+    private StreamsLayout newStreamsLayout(
+        Path path)
     {
         return new StreamsLayout.Builder()
                 .path(path)
                 .streamsCapacity(streamsCapacity)
-                .throttleCapacity(throttleCapacity)
                 .readonly(true)
                 .build();
     }
