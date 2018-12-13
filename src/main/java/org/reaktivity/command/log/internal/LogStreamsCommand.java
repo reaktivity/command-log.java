@@ -29,7 +29,7 @@ import org.agrona.collections.Long2LongHashMap;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
-import org.reaktivity.nukleus.Configuration;
+import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 
 public final class LogStreamsCommand implements Runnable
 {
@@ -42,7 +42,6 @@ public final class LogStreamsCommand implements Runnable
 
     private final Path directory;
     private final boolean verbose;
-    private final long streamsCapacity;
     private final boolean continuous;
     private final Logger out;
     private final Long2LongHashMap timestamps;
@@ -50,14 +49,13 @@ public final class LogStreamsCommand implements Runnable
     private long nextTimestamp = Long.MAX_VALUE;
 
     LogStreamsCommand(
-        Configuration config,
+        ReaktorConfiguration config,
         Logger out,
         boolean verbose,
         boolean continuous)
     {
         this.directory = config.directory();
         this.verbose = verbose;
-        this.streamsCapacity = config.streamsBufferCapacity();
         this.continuous = continuous;
         this.out = out;
         this.timestamps = new Long2LongHashMap(-1L);
@@ -76,7 +74,6 @@ public final class LogStreamsCommand implements Runnable
     {
         StreamsLayout layout = new StreamsLayout.Builder()
                 .path(path)
-                .streamsCapacity(streamsCapacity)
                 .readonly(true)
                 .build();
 

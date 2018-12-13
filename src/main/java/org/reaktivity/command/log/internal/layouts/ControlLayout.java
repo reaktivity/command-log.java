@@ -167,13 +167,14 @@ public final class ControlLayout extends Layout
         public ControlLayout build()
         {
             File controlFile = controlPath.toFile();
-            int commandBufferLength = commandBufferCapacity + RingBufferDescriptor.TRAILER_LENGTH;
-            int responseBufferLength = responseBufferCapacity + BroadcastBufferDescriptor.TRAILER_LENGTH;
-            int counterLabelsBufferLength = counterLabelsBufferCapacity;
-            int counterValuesBufferLength = counterValuesBufferCapacity;
 
             if (!readonly)
             {
+                int commandBufferLength = commandBufferCapacity + RingBufferDescriptor.TRAILER_LENGTH;
+                int responseBufferLength = responseBufferCapacity + BroadcastBufferDescriptor.TRAILER_LENGTH;
+                int counterLabelsBufferLength = counterLabelsBufferCapacity;
+                int counterValuesBufferLength = counterValuesBufferCapacity;
+
                 createEmptyFile(controlFile, END_OF_META_DATA_OFFSET +
                         commandBufferLength + responseBufferLength + counterLabelsBufferLength + counterValuesBufferLength);
 
@@ -185,6 +186,21 @@ public final class ControlLayout extends Layout
                 metadata.putInt(FIELD_OFFSET_COUNTER_VALUES_BUFFER_LENGTH, counterValuesBufferCapacity);
                 unmap(metadata);
             }
+            else
+            {
+                MappedByteBuffer metadata = mapExistingFile(controlFile, "metadata", 0, END_OF_META_DATA_OFFSET);
+                assert CONTROL_VERSION == metadata.getInt(FIELD_OFFSET_VERSION);
+                commandBufferCapacity = metadata.getInt(FIELD_OFFSET_COMMAND_BUFFER_LENGTH);
+                responseBufferCapacity = metadata.getInt(FIELD_OFFSET_RESPONSE_BUFFER_LENGTH);
+                counterLabelsBufferCapacity = metadata.getInt(FIELD_OFFSET_COUNTER_LABELS_BUFFER_LENGTH);
+                counterValuesBufferCapacity = metadata.getInt(FIELD_OFFSET_COUNTER_VALUES_BUFFER_LENGTH);
+                unmap(metadata);
+            }
+
+            int commandBufferLength = commandBufferCapacity + RingBufferDescriptor.TRAILER_LENGTH;
+            int responseBufferLength = responseBufferCapacity + BroadcastBufferDescriptor.TRAILER_LENGTH;
+            int counterLabelsBufferLength = counterLabelsBufferCapacity;
+            int counterValuesBufferLength = counterValuesBufferCapacity;
 
             int commandBufferOffset = END_OF_META_DATA_OFFSET;
             layout.commandBuffer.wrap(mapExistingFile(controlFile, "commands", commandBufferOffset, commandBufferLength));

@@ -43,11 +43,11 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <nukleus.version>0.23</nukleus.version>
-    <nukleus.plugin.version>0.25</nukleus.plugin.version>
-    <nukleus.http.spec.version>0.60</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>0.27</nukleus.tls.spec.version>
-    <nukleus.tcp.spec.version>0.40</nukleus.tcp.spec.version>
+    <reaktor.version>0.68</reaktor.version>
+    <nukleus.plugin.version>0.32</nukleus.plugin.version>
+    <nukleus.http.spec.version>0.62</nukleus.http.spec.version>
+    <nukleus.tls.spec.version>0.29</nukleus.tls.spec.version>
+    <nukleus.tcp.spec.version>0.42</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
@@ -62,20 +62,20 @@
     </dependency>
     <dependency>
       <groupId>org.reaktivity</groupId>
+      <artifactId>nukleus-tls.spec</artifactId>
+      <version>${nukleus.tls.spec.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.reaktivity</groupId>
       <artifactId>nukleus-http.spec</artifactId>
       <version>${nukleus.http.spec.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.reaktivity</groupId>
-      <artifactId>nukleus</artifactId>
-      <version>${nukleus.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.reaktivity</groupId>
-      <artifactId>nukleus-tls.spec</artifactId>
-      <version>${nukleus.tls.spec.version}</version>
-      <scope>provided</scope>
+      <artifactId>reaktor</artifactId>
+      <version>${reaktor.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-cli</groupId>

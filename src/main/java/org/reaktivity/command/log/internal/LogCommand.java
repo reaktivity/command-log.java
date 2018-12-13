@@ -16,6 +16,7 @@
 package org.reaktivity.command.log.internal;
 
 import static org.apache.commons.cli.Option.builder;
+import static org.reaktivity.reaktor.internal.ReaktorConfiguration.REAKTOR_DIRECTORY;
 
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +27,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.reaktivity.nukleus.Configuration;
+import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 
 public final class LogCommand
 {
@@ -61,9 +63,9 @@ public final class LogCommand
             final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
 
             Properties properties = new Properties();
-            properties.setProperty(Configuration.DIRECTORY_PROPERTY_NAME, directory);
+            properties.setProperty(REAKTOR_DIRECTORY.name(), directory);
 
-            final Configuration config = new LogCommandConfiguration(properties);
+            final ReaktorConfiguration config = new ReaktorConfiguration(new Configuration(), properties);
 
             Runnable command = null;
 
