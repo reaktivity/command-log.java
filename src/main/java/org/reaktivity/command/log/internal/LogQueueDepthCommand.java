@@ -15,17 +15,17 @@
  */
 package org.reaktivity.command.log.internal;
 
-import org.agrona.LangUtil;
-import org.reaktivity.command.log.internal.layouts.StreamsLayout;
-import org.reaktivity.command.log.internal.spy.RingBufferSpy;
-import org.reaktivity.nukleus.Configuration;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Stream;
+
+import org.agrona.LangUtil;
+import org.reaktivity.command.log.internal.layouts.StreamsLayout;
+import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 
 public final class LogQueueDepthCommand implements Runnable
 {
@@ -34,11 +34,10 @@ public final class LogQueueDepthCommand implements Runnable
     private final boolean separator;
     private final Logger out;
 
-    private final long streamsCapacity;
     private final Map<Path, StreamsLayout> layoutsByPath;
 
     public LogQueueDepthCommand(
-        Configuration config,
+        ReaktorConfiguration config,
         Logger out,
         boolean verbose,
         boolean separator)
@@ -47,7 +46,6 @@ public final class LogQueueDepthCommand implements Runnable
         this.out = out;
         this.verbose = verbose;
         this.separator = separator;
-        this.streamsCapacity = config.streamsBufferCapacity();
         this.layoutsByPath = new LinkedHashMap<>();
     }
 
@@ -83,7 +81,6 @@ public final class LogQueueDepthCommand implements Runnable
     {
         return new StreamsLayout.Builder()
                 .path(path)
-                .streamsCapacity(streamsCapacity)
                 .readonly(true)
                 .build();
     }

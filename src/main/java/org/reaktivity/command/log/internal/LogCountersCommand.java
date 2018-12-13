@@ -18,28 +18,25 @@ package org.reaktivity.command.log.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Stream;
+
 import org.agrona.LangUtil;
 import org.agrona.concurrent.status.CountersManager;
 import org.reaktivity.command.log.internal.layouts.ControlLayout;
-import org.reaktivity.nukleus.Configuration;
+import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 
 public final class LogCountersCommand implements Runnable
 {
     private final Path directory;
     private final boolean verbose;
     private final boolean separator;
-    private final int commandBufferCapacity;
-    private final int responseBufferCapacity;
-    private final int counterLabelsBufferCapacity;
-    private final int counterValuesBufferCapacity;
     private final Logger out;
     private final Map<Path, CountersManager> countersByPath;
 
     LogCountersCommand(
-        Configuration config,
+        ReaktorConfiguration config,
         Logger out,
         boolean verbose,
         boolean separator)
@@ -47,10 +44,6 @@ public final class LogCountersCommand implements Runnable
         this.directory = config.directory();
         this.verbose = verbose;
         this.separator = separator;
-        this.commandBufferCapacity = config.commandBufferCapacity();
-        this.responseBufferCapacity = config.responseBufferCapacity();
-        this.counterLabelsBufferCapacity = config.counterLabelsBufferCapacity();
-        this.counterValuesBufferCapacity = config.counterValuesBufferCapacity();
         this.out = out;
         this.countersByPath = new LinkedHashMap<>();
     }
@@ -91,10 +84,6 @@ public final class LogCountersCommand implements Runnable
     {
         ControlLayout layout = new ControlLayout.Builder()
                 .controlPath(path)
-                .commandBufferCapacity(commandBufferCapacity)
-                .responseBufferCapacity(responseBufferCapacity)
-                .counterLabelsBufferCapacity(counterLabelsBufferCapacity)
-                .counterValuesBufferCapacity(counterValuesBufferCapacity)
                 .readonly(true)
                 .build();
 
