@@ -97,10 +97,8 @@ public final class LoggableRoutes implements AutoCloseable
 
             final long correlationId = route.correlationId();
             final String role = route.role().toString();
-            final String source = route.source().asString();
-            final long sourceRef = route.sourceRef();
-            final String target = route.target().asString();
-            final long targetRef = route.targetRef();
+            final String localAddress = route.localAddress().asString();
+            final String remoteAddress = route.remoteAddress().asString();
             final long authorization = route.authorization();
             thisIterationRoutes.add(correlationId);
 
@@ -109,25 +107,20 @@ public final class LoggableRoutes implements AutoCloseable
                 workCnt.incrementAndGet();
 
                 String extension = extension(route);
-                out.printf(format(
-                        "{" +
-                        "\"$nukleus\":\"%s\", " +
-                        "\"$id\":%d, " +
-                        "\"role\":\"%s\", " +
-                        "\"source\":\"%s\", " +
-                        "\"sourceRef\":%d, " +
-                        "\"target\":\"%s\", " +
-                        "\"targetRef\":%d, " +
-                        "\"authorization\":%d%s}\n",
-                        nukleusName,
-                        correlationId,
-                        role,
-                        source,
-                        sourceRef,
-                        target,
-                        targetRef,
-                        authorization,
-                        extension == null ? "" : String.format(", \"extension\": %s", extension)));
+                out.printf("{" +
+                           "\"$nukleus\":\"%s\", " +
+                           "\"$id\":%d, " +
+                           "\"role\":\"%s\", " +
+                           "\"authorization\":%d, " +
+                           "\"localAddress\":\"%s\", " +
+                           "\"remoteAddress\":\"%s\"%s}\n",
+                           nukleusName,
+                           correlationId,
+                           role,
+                           authorization,
+                           localAddress,
+                           remoteAddress,
+                           extension == null ? "" : String.format(", \"extension\": %s", extension));
                 loggedRoutes.add(correlationId);
                 workCnt.incrementAndGet();
             }
@@ -158,13 +151,13 @@ public final class LoggableRoutes implements AutoCloseable
             final String store = ext.store().asString();
             extension = String.format(
             "{" +
-            "\"store\":\"%s\"," +
-            "\"hostname\":\"%s\"," +
-            "\"applicationProtocol\":\"%s\"" +
+            "\"store\":%s," +
+            "\"hostname\":%s," +
+            "\"applicationProtocol\":%s" +
             "}",
-            store,
-            hostname,
-            applicationProtocol);
+            store != null ? String.format("\"%s\"", store) : null,
+            hostname != null ? String.format("\"%s\"", hostname) : null,
+            applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
         }
         return extension;
     }

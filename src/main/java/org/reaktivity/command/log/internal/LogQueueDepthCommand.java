@@ -52,8 +52,8 @@ public final class LogQueueDepthCommand implements Runnable
     private boolean isStreamsFile(
         Path path)
     {
-        return path.getNameCount() - directory.getNameCount() == 3 &&
-                "streams".equals(path.getName(path.getNameCount() - 2).toString()) &&
+        return path.getNameCount() - directory.getNameCount() == 2 &&
+                "streams".equals(path.getName(path.getNameCount() - 1).toString()) &&
                 Files.isRegularFile(path);
     }
 
@@ -71,9 +71,8 @@ public final class LogQueueDepthCommand implements Runnable
     {
 
         StreamsLayout layout = layoutsByPath.computeIfAbsent(path, this::newStreamsLayout);
-        String nukleus = path.getName(path.getNameCount() - 3).toString();
-        String source = path.getName(path.getNameCount() - 1).toString();
-        displayQueueDepth(nukleus, source, "streams", layout.streamsBuffer());
+        String nukleus = path.getName(path.getNameCount() - 2).toString();
+        displayQueueDepth(nukleus, "streams", layout.streamsBuffer());
     }
 
     private StreamsLayout newStreamsLayout(
@@ -87,7 +86,6 @@ public final class LogQueueDepthCommand implements Runnable
 
     private void displayQueueDepth(
         String nukleus,
-        String source,
         String type,
         RingBufferSpy buffer)
     {
@@ -97,8 +95,11 @@ public final class LogQueueDepthCommand implements Runnable
 
         final String valueFormat = separator ? ",d" : "d";
 
-        out.printf("{\"nukleus\":\"%s\", \"source\":\"%s\", \"type\":\"%s\", \"depth\":%" + valueFormat + "}\n",
-                nukleus, source, type, producerAt - consumerAt);
+        out.printf("{\"nukleus\":\"%s\", " +
+                    "\"head\":%" + valueFormat + ", " +
+                    "\"tail\":%" + valueFormat + ", " +
+                    "\"depth\":%" + valueFormat + "}\n",
+                    nukleus, consumerAt, producerAt, producerAt - consumerAt);
     }
 
     @Override

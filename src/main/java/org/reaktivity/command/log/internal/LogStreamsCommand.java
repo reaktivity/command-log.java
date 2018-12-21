@@ -20,30 +20,29 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
+import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 
 public final class LogStreamsCommand implements Runnable
 {
-    private static final Pattern SENDER_NAME = Pattern.compile("([^#]+).*");
-
     private static final long MAX_PARK_NS = MILLISECONDS.toNanos(100L);
     private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
     private static final int MAX_YIELDS = 30;
     private static final int MAX_SPINS = 20;
 
     private final Path directory;
+    private final LabelManager labels;
     private final boolean verbose;
     private final boolean continuous;
     private final Logger out;
+    private final Long2LongHashMap budgets;
     private final Long2LongHashMap timestamps;
 
     private long nextTimestamp = Long.MAX_VALUE;
@@ -55,17 +54,19 @@ public final class LogStreamsCommand implements Runnable
         boolean continuous)
     {
         this.directory = config.directory();
+        this.labels = new LabelManager(directory);
         this.verbose = verbose;
         this.continuous = continuous;
         this.out = out;
+        this.budgets = new Long2LongHashMap(-1L);
         this.timestamps = new Long2LongHashMap(-1L);
     }
 
     private boolean isStreamsFile(
         Path path)
     {
-        return path.getNameCount() - directory.getNameCount() == 3 &&
-               "streams".equals(path.getName(path.getNameCount() - 2).toString()) &&
+        return path.getNameCount() - directory.getNameCount() == 2 &&
+               "streams".equals(path.getName(path.getNameCount() - 1).toString()) &&
                Files.isRegularFile(path);
     }
 
@@ -77,10 +78,7 @@ public final class LogStreamsCommand implements Runnable
                 .readonly(true)
                 .build();
 
-        String receiver = path.getName(path.getNameCount() - 3).toString();
-        String sender = sender(path);
-
-        return new LoggableStream(receiver, sender, layout, out, verbose, timestamps, this::nextTimestamp);
+        return new LoggableStream(labels, budgets, layout, out, verbose, timestamps, this::nextTimestamp);
     }
 
     private void onDiscovered(
@@ -138,20 +136,6 @@ public final class LogStreamsCommand implements Runnable
         {
             nextTimestamp = Long.MAX_VALUE;
             return true;
-        }
-    }
-
-    private static String sender(
-        Path path)
-    {
-        Matcher matcher = SENDER_NAME.matcher(path.getName(path.getNameCount() - 1).toString());
-        if (matcher.matches())
-        {
-            return matcher.group(1);
-        }
-        else
-        {
-            throw new IllegalStateException();
         }
     }
 }
