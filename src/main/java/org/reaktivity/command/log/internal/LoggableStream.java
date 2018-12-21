@@ -26,10 +26,12 @@ import java.util.function.Predicate;
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
 import org.agrona.collections.Long2LongHashMap;
+import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.TcpAddressFW;
+import org.reaktivity.command.log.internal.types.control.Role;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
@@ -54,9 +56,9 @@ public final class LoggableStream implements AutoCloseable
     private final TcpBeginExFW tcpBeginExRO = new TcpBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
+    private final LabelManager labels;
     private final String streamFormat;
     private final String throttleFormat;
-    private final String targetName;
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final Logger out;
@@ -66,25 +68,23 @@ public final class LoggableStream implements AutoCloseable
     private final LongPredicate nextTimestamp;
 
     LoggableStream(
-        String receiver,
-        String sender,
+        LabelManager labels,
+        Long2LongHashMap budgets,
         StreamsLayout layout,
         Logger logger,
         boolean verbose,
         Long2LongHashMap timestamps,
         LongPredicate nextTimestamp)
     {
-        this.streamFormat =
-                format("[%%d] [0x%%08x] [0x%%016x] [%s -> %s]\t[0x%%016x] [0x%%016x] [%%016x] %%s\n", sender, receiver);
-        this.throttleFormat =
-                format("[%%d] [0x%%08x] [0x%%016x] [%s <- %s]\t[0x%%016x] [0x%%016x] [%%016x] %%s\n", receiver, sender);
+        this.labels = labels;
+        this.streamFormat = "[%d] [0x%08x] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] [%016x] %s\n";
+        this.throttleFormat = "[%d] [0x%08x] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] [%016x] %s\n";
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
-        this.targetName = receiver;
         this.out = logger;
         this.verbose = verbose;
-        this.budgets = new Long2LongHashMap(-1L);
+        this.budgets = budgets;
         this.timestamps = timestamps;
         this.nextTimestamp = nextTimestamp;
     }
@@ -152,8 +152,6 @@ public final class LoggableStream implements AutoCloseable
         final long routeId = begin.routeId();
         final long streamId = begin.streamId();
         final long traceId = begin.trace();
-        final String sourceName = begin.source().asString();
-        final long sourceRef = begin.sourceRef();
         final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
         final int budget = (int) budgets.computeIfAbsent(streamId, id -> 0L);
@@ -161,13 +159,20 @@ public final class LoggableStream implements AutoCloseable
         final long timeStart = timestamps.computeIfAbsent(initialId, id -> timestamp);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(streamFormat, timestamp, budget, traceId, routeId, streamId, timeOffset,
-                   format("BEGIN \"%s\" [0x%016x] [0x%016x] [0x%016x]", sourceName, sourceRef, correlationId, authorization));
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                   format("BEGIN [0x%016x] [0x%016x]", correlationId, authorization));
 
         OctetsFW extension = begin.extension();
         if (verbose && extension.sizeof() != 0)
         {
-            if (sourceName.equals("tcp") || targetName.equals("tcp"))
+            if (sourceName.startsWith("tcp") || targetName.startsWith("tcp"))
             {
                 TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
                 InetSocketAddress localAddress = toInetSocketAddress(tcpBeginEx.localAddress(), tcpBeginEx.localPort());
@@ -175,29 +180,19 @@ public final class LoggableStream implements AutoCloseable
                 out.printf("[%d] %s\t%s\n", timestamp, localAddress, remoteAddress);
             }
 
-            if (sourceName.startsWith("http"))
+            if (sourceName.startsWith("http") || targetName.startsWith("http"))
             {
-                final boolean initial = (sourceRef != 0);
-                final long typedRef = (sourceRef != 0) ? sourceRef : correlationId;
-                final Predicate<String> isHttp = n -> n.startsWith("http");
-                final LongPredicate isClient = r -> r > 0L && (r & 0x01L) != 0x00L;
-                final LongPredicate isServer = r -> r > 0L && (r & 0x01L) == 0x00L;
-                final LongPredicate isProxy = r -> r < 0L && (r & 0x01L) == 0x00L;
-                final boolean isHttpClientInitial = initial && isClient.test(typedRef) && isHttp.test(targetName);
-                final boolean isHttpClientReply = !initial && isClient.test(typedRef) && isHttp.test(sourceName);
-                final boolean isHttpServerInitial = initial && isServer.test(typedRef) && isHttp.test(sourceName);
-                final boolean isHttpServerReply = !initial && isServer.test(typedRef) && isHttp.test(targetName);
-                final boolean isHttpProxyInitial = initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
-                        || isHttp.test(targetName));
-                final boolean isHttpProxyReply = !initial && isProxy.test(typedRef) && (isHttp.test(sourceName)
-                        || isHttp.test(targetName));
+                final Role role = Role.valueOf((int)(routeId >> 28) & 0x0f);
+                final boolean isInitial = (streamId & 0x8000_0000_0000_0000L) == 0;
+                final boolean isReply = (streamId & 0x8000_0000_0000_0000L) != 0;
+                Predicate<String> isHttp11 = "http"::equals;
+                Predicate<String> isHttp2 = "http2"::equals;
+                Predicate<String> isHttpCodec = isHttp11.or(isHttp2);
 
-                if (isHttpClientInitial
-                        || isHttpServerReply
-                        || isHttpClientReply
-                        || isHttpServerInitial
-                        || isHttpProxyInitial
-                        | isHttpProxyReply)
+                if (!(role == Role.SERVER && isInitial && isHttpCodec.test(targetName)) &&
+                    !(role == Role.SERVER && isReply && isHttpCodec.test(sourceName)) &&
+                    !(role == Role.CLIENT && isInitial && isHttpCodec.test(sourceName)) &&
+                    !(role == Role.CLIENT && isReply && isHttpCodec.test(targetName)))
                 {
                     HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
                     httpBeginEx.headers()
@@ -223,7 +218,14 @@ public final class LoggableStream implements AutoCloseable
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, routeId, streamId, timeOffset,
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(format(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
                           format("DATA [%d] [%d] [%x] [0x%016x]", length, padding, flags, authorization)));
     }
 
@@ -240,7 +242,14 @@ public final class LoggableStream implements AutoCloseable
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, routeId, streamId, timeOffset,
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(format(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
                 format("END [0x%016x]", authorization)));
     }
 
@@ -257,7 +266,14 @@ public final class LoggableStream implements AutoCloseable
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, routeId, streamId, timeOffset,
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(format(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
                 format("ABORT [0x%016x]", authorization)));
     }
 
@@ -273,7 +289,15 @@ public final class LoggableStream implements AutoCloseable
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(throttleFormat, timestamp, budget, traceId, routeId, streamId, timeOffset, "RESET"));
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(format(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                "RESET"));
     }
 
     private void handleWindow(
@@ -291,8 +315,15 @@ public final class LoggableStream implements AutoCloseable
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
-        out.printf(format(throttleFormat, timestamp, budget, traceId, routeId, streamId, timeOffset,
-                          format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(format(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
     }
 
     private InetSocketAddress toInetSocketAddress(
