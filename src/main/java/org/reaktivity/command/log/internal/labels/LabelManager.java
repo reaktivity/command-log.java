@@ -16,15 +16,12 @@
 package org.reaktivity.command.log.internal.labels;
 
 import static java.nio.channels.Channels.newReader;
-import static java.nio.channels.Channels.newWriter;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -54,39 +51,15 @@ public final class LabelManager
         this.sizeInBytes = -1L;
     }
 
-    public int supplyLabelId(
-        String label)
-    {
-        checkSnapshot();
-        return labelIds.computeIfAbsent(label, this::nextLabelId);
-    }
-
     public String lookupLabel(
         int labelId)
     {
-        checkSnapshot();
-        return labelId >= 1 && labelId <= labels.size() ? labels.get(labelId - 1) : "??";
-    }
-
-    private int nextLabelId(
-        String nextLabel)
-    {
-        try (FileChannel channel = FileChannel.open(labelsPath, APPEND))
+        if (labelId < 1 || labelId > labels.size())
         {
-            try (BufferedWriter out = new BufferedWriter(newWriter(channel, UTF_8.name())))
-            {
-                out.write(nextLabel);
-                out.write('\n');
-            }
-        }
-        catch (IOException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
+            checkSnapshot();
         }
 
-        labels.add(nextLabel);
-
-        return labels.size();
+        return  labelId >= 1 && labelId <= labels.size() ? labels.get(labelId - 1) : "??";
     }
 
     private void checkSnapshot()
