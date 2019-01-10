@@ -74,8 +74,7 @@ public final class LogCountersCommand implements Runnable
 
         manager.forEach((id, name) -> out.printf(
                 "{" +
-                "\"nukleus\": \"%s\"," +
-                "\"name\": \"%s\"," +
+                "\"name\": \"%s.%s\"," +
                 "\"value\":%" + valueFormat +
                 "}\n", owner, name, manager.getCounterValue(id)));
     }
