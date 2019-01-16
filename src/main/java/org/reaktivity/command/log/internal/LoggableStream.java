@@ -191,8 +191,8 @@ public final class LoggableStream implements AutoCloseable
                 final Role role = Role.valueOf((int)(routeId >> 28) & 0x0f);
                 final boolean isInitial = (streamId & 0x8000_0000_0000_0000L) == 0;
                 final boolean isReply = (streamId & 0x8000_0000_0000_0000L) != 0;
-                Predicate<String> isHttp11 = "http"::equals;
-                Predicate<String> isHttp2 = "http2"::equals;
+                Predicate<String> isHttp11 = label -> label.startsWith("http#");
+                Predicate<String> isHttp2 = label -> label.startsWith("http2#");
                 Predicate<String> isHttpCodec = isHttp11.or(isHttp2);
 
                 if (!(role == Role.SERVER && isInitial && isHttpCodec.test(targetName)) &&
