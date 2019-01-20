@@ -15,12 +15,9 @@
  */
 package org.reaktivity.command.log.internal;
 
-import static java.lang.String.format;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
 import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -32,53 +29,45 @@ import org.reaktivity.command.log.internal.types.state.RouteTableFW;
 
 public final class LoggableRoutes implements AutoCloseable
 {
-    private final RoutesLayout layout;
-    private final MutableDirectBuffer routesBuffer;
+    private final RouteTableFW routeTableRO = new RouteTableFW();
+    private final RouteFW routeRO = new RouteFW();
+
+    private final RoutesLayout routes;
     private final Logger out;
     private final IdleStrategy idleStrategy;
-    private final RouteTableFW routeTableRO;
-    private final byte[] copyBuf;
-    private final int capacity;
-    private final UnsafeBuffer copyBufFW;
-    private final RouteFW routeRO;
+    private final UnsafeBuffer routesSnapshot;
     private final LongHashSet loggedRoutes;
-    private final String nukleusName;
 
     LoggableRoutes(
-        RoutesLayout layout,
-        String nukleusName,
+        RoutesLayout routes,
         Logger logger,
         IdleStrategy idleStrategy)
     {
-        this.layout = layout;
-        this.nukleusName  = nukleusName;
-        this.routesBuffer = layout.routesBuffer();
+        this.routes = routes;
         this.out = logger;
         this.idleStrategy = idleStrategy;
-        this.routeTableRO = new RouteTableFW();
-        this.capacity = layout.capacity();
-        this.copyBuf = new byte[capacity];
-        this.copyBufFW = new UnsafeBuffer(copyBuf);
-        this.routeRO = new RouteFW();
+        this.routesSnapshot = new UnsafeBuffer(new byte[routes.routesBuffer().capacity()]);
         this.loggedRoutes = new LongHashSet(-1);
     }
 
     int process()
     {
-        RouteTableFW routeTable = routeTableRO.wrap(routesBuffer, 0, capacity);
-        final int beforeAcquires = routeTableRO.writeLockAcquires();
-        if (beforeAcquires == routeTableRO.writeLockReleases())
+        final DirectBuffer routesBuffer = routes.routesBuffer();
+
+        routesBuffer.getBytes(0, routesSnapshot, 0, routesBuffer.capacity());
+        RouteTableFW routeTableSnapshot = routeTableRO.wrap(routesSnapshot, 0, routesSnapshot.capacity());
+        final int modCountSnapshot = routeTableSnapshot.modificationCount();
+
+        final RouteTableFW routeTable = routeTableRO.wrap(routesBuffer, 0, routesBuffer.capacity());
+        final int modCount = routeTable.modificationCount();
+
+        if (modCount == modCountSnapshot)
         {
-            routesBuffer.getBytes(0, copyBuf);
-            copyBufFW.wrap(copyBuf);
-            routeTable = routeTableRO.wrap(copyBufFW, 0, capacity);
-            final int afterCopyAcquires = routeTable.writeLockAcquires();
-            if (beforeAcquires == afterCopyAcquires)
-            {
-                return logRoutes(routeTable, new LongHashSet(-1), new AtomicInteger(0));
-            }
+            return logRoutes(routeTableSnapshot, new LongHashSet(-1), new AtomicInteger(0));
         }
+
         idleStrategy.idle();
+
         return process();
     }
 
@@ -87,15 +76,13 @@ public final class LoggableRoutes implements AutoCloseable
         LongHashSet thisIterationRoutes,
         AtomicInteger workCnt)
     {
-        routeTable.routeEntries().forEach(e ->
+        routeTable.entries().forEach(e ->
         {
-            final OctetsFW routeOctets = e.route();
-            final DirectBuffer buffer = routeOctets.buffer();
-            final int offset = routeOctets.offset();
-            final int routeSize = (int) e.routeSize();
-            RouteFW route = routeRO.wrap(buffer, offset, offset + routeSize);
+            final OctetsFW octets = e.route();
+            final RouteFW route = routeRO.wrap(octets.buffer(), octets.offset(), octets.limit());
 
             final long correlationId = route.correlationId();
+            final String nukleusName = route.nukleus().asString();
             final String role = route.role().toString();
             final String localAddress = route.localAddress().asString();
             final String remoteAddress = route.remoteAddress().asString();
@@ -131,15 +118,18 @@ public final class LoggableRoutes implements AutoCloseable
         {
             removedRoutes.stream().forEach(correlationId ->
             {
-                out.printf(format("Unrouted %s#%d\n", nukleusName, correlationId));
+                out.printf("Unrouted %d\n", correlationId);
                 loggedRoutes.remove(correlationId);
             });
         }
         return workCnt.get();
     }
 
-    private String extension(RouteFW route)
+    private String extension(
+        RouteFW route)
     {
+        final String nukleusName = route.nukleus().asString();
+
         String extension = null;
         if ("tls".equals(nukleusName))
         {
@@ -159,13 +149,13 @@ public final class LoggableRoutes implements AutoCloseable
             hostname != null ? String.format("\"%s\"", hostname) : null,
             applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
         }
+
         return extension;
     }
 
     @Override
     public void close() throws Exception
     {
-        layout.close();
+        routes.close();
     }
-
 }
