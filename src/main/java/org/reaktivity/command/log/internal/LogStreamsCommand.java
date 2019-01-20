@@ -15,11 +15,14 @@
  */
 package org.reaktivity.command.log.internal;
 
+import static java.lang.Integer.parseInt;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -32,6 +35,8 @@ import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 
 public final class LogStreamsCommand implements Runnable
 {
+    private static final Pattern STREAMS_PATTERN = Pattern.compile("data(\\d+)");
+
     private static final long MAX_PARK_NS = MILLISECONDS.toNanos(100L);
     private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
     private static final int MAX_YIELDS = 30;
@@ -65,20 +70,25 @@ public final class LogStreamsCommand implements Runnable
     private boolean isStreamsFile(
         Path path)
     {
-        return path.getNameCount() - directory.getNameCount() == 2 &&
-               "streams".equals(path.getName(path.getNameCount() - 1).toString()) &&
+        return path.getNameCount() - directory.getNameCount() == 1 &&
+               STREAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
                Files.isRegularFile(path);
     }
 
     private LoggableStream newLoggable(
         Path path)
     {
+        final String filename = path.getFileName().toString();
+        final Matcher matcher = STREAMS_PATTERN.matcher(filename);
+        matcher.matches();
+        final int index = parseInt(matcher.group(1));
+
         StreamsLayout layout = new StreamsLayout.Builder()
                 .path(path)
                 .readonly(true)
                 .build();
 
-        return new LoggableStream(labels, budgets, layout, out, verbose, timestamps, this::nextTimestamp);
+        return new LoggableStream(index, labels, budgets, layout, out, verbose, timestamps, this::nextTimestamp);
     }
 
     private void onDiscovered(

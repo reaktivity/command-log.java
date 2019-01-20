@@ -58,6 +58,7 @@ public final class LoggableStream implements AutoCloseable
     private final TcpBeginExFW tcpBeginExRO = new TcpBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
+    private final int index;
     private final LabelManager labels;
     private final String streamFormat;
     private final String throttleFormat;
@@ -70,6 +71,7 @@ public final class LoggableStream implements AutoCloseable
     private final LongPredicate nextTimestamp;
 
     LoggableStream(
+        int index,
         LabelManager labels,
         Long2LongHashMap budgets,
         StreamsLayout layout,
@@ -78,6 +80,7 @@ public final class LoggableStream implements AutoCloseable
         Long2LongHashMap timestamps,
         LongPredicate nextTimestamp)
     {
+        this.index = index;
         this.labels = labels;
         this.streamFormat = "[%d] [0x%08x] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] [%016x] %s\n";
         this.throttleFormat = "[%d] [0x%08x] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] [%016x] %s\n";
@@ -100,6 +103,12 @@ public final class LoggableStream implements AutoCloseable
     public void close() throws Exception
     {
         layout.close();
+    }
+
+    @Override
+    public String toString()
+    {
+        return String.format("data%d (spy)", index);
     }
 
     private boolean handleFrame(
@@ -188,21 +197,25 @@ public final class LoggableStream implements AutoCloseable
 
             if (sourceName.startsWith("http") || targetName.startsWith("http"))
             {
-                final Role role = Role.valueOf((int)(routeId >> 28) & 0x0f);
-                final boolean isInitial = (streamId & 0x8000_0000_0000_0000L) == 0;
-                final boolean isReply = (streamId & 0x8000_0000_0000_0000L) != 0;
-                Predicate<String> isHttp11 = label -> label.startsWith("http#");
-                Predicate<String> isHttp2 = label -> label.startsWith("http2#");
-                Predicate<String> isHttpCodec = isHttp11.or(isHttp2);
-
-                if (!(role == Role.SERVER && isInitial && isHttpCodec.test(targetName)) &&
-                    !(role == Role.SERVER && isReply && isHttpCodec.test(sourceName)) &&
-                    !(role == Role.CLIENT && isInitial && isHttpCodec.test(sourceName)) &&
-                    !(role == Role.CLIENT && isReply && isHttpCodec.test(targetName)))
+                final int roleId = (int)(routeId >> 28) & 0x0f;
+                if (roleId != 0x0f)
                 {
-                    HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-                    httpBeginEx.headers()
-                            .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
+                    final Role role = Role.valueOf(roleId);
+                    final boolean isInitial = (streamId & 0x8000_0000_0000_0000L) == 0;
+                    final boolean isReply = (streamId & 0x8000_0000_0000_0000L) != 0;
+                    Predicate<String> isHttp11 = label -> label.startsWith("http#");
+                    Predicate<String> isHttp2 = label -> label.startsWith("http2#");
+                    Predicate<String> isHttpCodec = isHttp11.or(isHttp2);
+
+                    if (!(role == Role.SERVER && isInitial && isHttpCodec.test(targetName)) &&
+                        !(role == Role.SERVER && isReply && isHttpCodec.test(sourceName)) &&
+                        !(role == Role.CLIENT && isInitial && isHttpCodec.test(sourceName)) &&
+                        !(role == Role.CLIENT && isReply && isHttpCodec.test(targetName)))
+                    {
+                        HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+                        httpBeginEx.headers()
+                                .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
+                    }
                 }
             }
         }
@@ -231,8 +244,8 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                          format("DATA [%d] [%d] [%x] [0x%016x]", length, padding, flags, authorization)));
+        out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                      format("DATA [%d] [%d] [%x] [0x%016x]", length, padding, flags, authorization));
     }
 
     private void handleEnd(
@@ -255,8 +268,8 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                format("END [0x%016x]", authorization)));
+        out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                format("END [0x%016x]", authorization));
     }
 
     private void handleAbort(
@@ -279,8 +292,8 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                format("ABORT [0x%016x]", authorization)));
+        out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                format("ABORT [0x%016x]", authorization));
     }
 
     private void handleSignal(
@@ -304,8 +317,8 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(format(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                format("SIGNAL [%d] [0x%016x]", signalId, authorization)));
+        out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
     private void handleReset(
@@ -327,8 +340,8 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(format(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                "RESET"));
+        out.printf(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                "RESET");
     }
 
     private void handleWindow(
@@ -353,8 +366,8 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(format(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                format("WINDOW [%d] [%d] [%d]", credit, padding, groupId)));
+        out.printf(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                format("WINDOW [%d] [%d] [%d]", credit, padding, groupId));
     }
 
     private InetSocketAddress toInetSocketAddress(

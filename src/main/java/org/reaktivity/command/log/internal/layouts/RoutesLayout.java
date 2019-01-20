@@ -22,55 +22,38 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.MutableDirectBuffer;
+import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
 public final class RoutesLayout extends Layout
 {
-
-    private final UnsafeBuffer routesBuffer;
-    private final int routesBufferCapacity;
+    private final DirectBuffer routesBuffer;
 
     private RoutesLayout(
-            UnsafeBuffer routesBuffer,
-        int routesBufferCapacity)
+        DirectBuffer routesBuffer)
     {
         this.routesBuffer = routesBuffer;
-        this.routesBufferCapacity = routesBufferCapacity;
     }
 
     @Override
     public void close()
     {
-        unmap(routesBuffer().byteBuffer());
+        unmap(routesBuffer.byteBuffer());
     }
 
-    public MutableDirectBuffer routesBuffer()
+    public DirectBuffer routesBuffer()
     {
         return routesBuffer;
-    }
-
-    public int capacity()
-    {
-        return routesBufferCapacity;
     }
 
     public static final class Builder extends Layout.Builder<RoutesLayout>
     {
 
         private Path path;
-        private int routesBufferCapacity;
 
         public Builder routesPath(Path path)
         {
             this.path = path;
-            return this;
-        }
-
-        public Builder routesBufferCapacity(
-            int routesBufferCapacity)
-        {
-            this.routesBufferCapacity = routesBufferCapacity;
             return this;
         }
 
@@ -79,12 +62,11 @@ public final class RoutesLayout extends Layout
         {
             final File routes = path.toFile();
 
-            final MappedByteBuffer mappedRoutes = mapExistingFile(routes, "routes", 0, routesBufferCapacity);
+            final MappedByteBuffer mappedRoutes = mapExistingFile(routes, "routes");
 
-            final UnsafeBuffer mutableRoutesBuffer = new UnsafeBuffer(mappedRoutes);
+            final DirectBuffer routesBuffer = new UnsafeBuffer(mappedRoutes);
 
-            return new RoutesLayout(mutableRoutesBuffer, routesBufferCapacity);
+            return new RoutesLayout(routesBuffer);
         }
-
     }
 }

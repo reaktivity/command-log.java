@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
@@ -29,6 +30,8 @@ import org.reaktivity.reaktor.internal.ReaktorConfiguration;
 
 public final class LogQueueDepthCommand implements Runnable
 {
+    private static final Pattern STREAMS_PATTERN = Pattern.compile("data\\d+");
+
     private final Path directory;
     private final boolean verbose;
     private final boolean separator;
@@ -52,9 +55,9 @@ public final class LogQueueDepthCommand implements Runnable
     private boolean isStreamsFile(
         Path path)
     {
-        return path.getNameCount() - directory.getNameCount() == 2 &&
-                "streams".equals(path.getName(path.getNameCount() - 1).toString()) &&
-                Files.isRegularFile(path);
+        return path.getNameCount() - directory.getNameCount() == 1 &&
+               STREAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
+               Files.isRegularFile(path);
     }
 
     private void onDiscovered(
@@ -69,10 +72,9 @@ public final class LogQueueDepthCommand implements Runnable
     private void displayQueueDepth(
         Path path)
     {
-
         StreamsLayout layout = layoutsByPath.computeIfAbsent(path, this::newStreamsLayout);
-        String nukleus = path.getName(path.getNameCount() - 2).toString();
-        displayQueueDepth(nukleus, "streams", layout.streamsBuffer());
+        final String name = path.getFileName().toString();
+        displayQueueDepth(name, layout.streamsBuffer());
     }
 
     private StreamsLayout newStreamsLayout(
@@ -85,8 +87,7 @@ public final class LogQueueDepthCommand implements Runnable
     }
 
     private void displayQueueDepth(
-        String nukleus,
-        String type,
+        String name,
         RingBufferSpy buffer)
     {
         // read consumer position first for pessimistic queue depth
@@ -95,11 +96,11 @@ public final class LogQueueDepthCommand implements Runnable
 
         final String valueFormat = separator ? ",d" : "d";
 
-        out.printf("{\"nukleus\":\"%s\", " +
+        out.printf("{\"name\":\"%s\", " +
                     "\"head\":%" + valueFormat + ", " +
                     "\"tail\":%" + valueFormat + ", " +
                     "\"depth\":%" + valueFormat + "}\n",
-                    nukleus, consumerAt, producerAt, producerAt - consumerAt);
+                    name, consumerAt, producerAt, producerAt - consumerAt);
     }
 
     @Override
