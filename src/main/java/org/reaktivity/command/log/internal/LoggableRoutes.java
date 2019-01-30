@@ -26,6 +26,8 @@ import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.control.RouteFW;
 import org.reaktivity.command.log.internal.types.control.TlsRouteExFW;
 import org.reaktivity.command.log.internal.types.state.RouteTableFW;
+import org.reaktivity.specification.http.internal.types.HttpHeaderFW;
+import org.reaktivity.specification.http.internal.types.control.HttpRouteExFW;
 
 public final class LoggableRoutes implements AutoCloseable
 {
@@ -148,6 +150,19 @@ public final class LoggableRoutes implements AutoCloseable
             store != null ? String.format("\"%s\"", store) : null,
             hostname != null ? String.format("\"%s\"", hostname) : null,
             applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
+        }
+        else if ("http2".equals(nukleusName))
+        {
+            HttpRouteExFW exFW = new HttpRouteExFW();
+            final int index = route.extension().offset();
+            exFW.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
+            HttpHeaderFW authority = exFW.headers().matchFirst(h -> h.name().asString().equals(":authority"));
+            extension = String.format(
+                    "{" +
+                    "\"headers\":{\"%s\": \"%s\"}" +
+                    "}",
+                     authority.name().asString(),
+                     authority.value().asString());
         }
 
         return extension;
