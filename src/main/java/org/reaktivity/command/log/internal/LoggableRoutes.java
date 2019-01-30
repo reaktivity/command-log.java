@@ -15,6 +15,7 @@
  */
 package org.reaktivity.command.log.internal;
 
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.agrona.DirectBuffer;
@@ -26,7 +27,6 @@ import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.control.RouteFW;
 import org.reaktivity.command.log.internal.types.control.TlsRouteExFW;
 import org.reaktivity.command.log.internal.types.state.RouteTableFW;
-import org.reaktivity.specification.http.internal.types.HttpHeaderFW;
 import org.reaktivity.specification.http.internal.types.control.HttpRouteExFW;
 
 public final class LoggableRoutes implements AutoCloseable
@@ -153,16 +153,15 @@ public final class LoggableRoutes implements AutoCloseable
         }
         else if ("http2".equals(nukleusName))
         {
-            HttpRouteExFW exFW = new HttpRouteExFW();
+            HttpRouteExFW httpExt = new HttpRouteExFW();
             final int index = route.extension().offset();
-            exFW.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
-            HttpHeaderFW authority = exFW.headers().matchFirst(h -> h.name().asString().equals(":authority"));
+            httpExt.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
+            HashMap<String, String> headers = new HashMap<>();
+            httpExt.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
             extension = String.format(
                     "{" +
-                    "\"headers\":{\"%s\": \"%s\"}" +
-                    "}",
-                     authority.name().asString(),
-                     authority.value().asString());
+                    "\"headers\":%s" +
+                    "}", headers.toString());
         }
 
         return extension;
