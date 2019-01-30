@@ -160,7 +160,7 @@ public final class LoggableRoutes implements AutoCloseable
             httpExt.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
             extension = String.format(
                     "{" +
-                    "\"headers\":%s" +
+                    "\"headers\": %s" +
                     "}", headers.toString());
         }
 
