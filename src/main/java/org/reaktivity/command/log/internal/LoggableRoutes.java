@@ -15,7 +15,6 @@
  */
 package org.reaktivity.command.log.internal;
 
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.agrona.DirectBuffer;
@@ -154,14 +153,14 @@ public final class LoggableRoutes implements AutoCloseable
         else if ("http2".equals(nukleusName))
         {
             HttpRouteExFW httpExt = new HttpRouteExFW();
-            final int index = route.extension().offset();
-            httpExt.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
-            HashMap<String, String> headers = new HashMap<>();
-            httpExt.headers().forEach(h -> headers.put(h.name().asString(), h.value().asString()));
+            route.extension().get(httpExt::wrap);
+            StringBuilder headers = new StringBuilder();
+            httpExt.headers().forEach(h -> headers.append(String.format("\"%s\":\"%s\",",
+                    h.name().asString(), h.value().asString())));
             extension = String.format(
                     "{" +
-                    "\"headers\": %s" +
-                    "}", headers.toString());
+                    "\"headers\": {%s}" +
+                    "}", headers.deleteCharAt(headers.length()-1));
         }
 
         return extension;
