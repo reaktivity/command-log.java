@@ -152,15 +152,17 @@ public final class LoggableRoutes implements AutoCloseable
         }
         else if ("http2".equals(nukleusName))
         {
-            HttpRouteExFW httpExt = new HttpRouteExFW();
-            route.extension().get(httpExt::wrap);
+            final HttpRouteExFW httpExt = route.extension().get(new HttpRouteExFW()::wrap);
             StringBuilder headers = new StringBuilder();
-            httpExt.headers().forEach(h -> headers.append(String.format("\"%s\":\"%s\",",
-                    h.name().asString(), h.value().asString())));
-            extension = String.format(
-                    "{" +
-                    "\"headers\": {%s}" +
-                    "}", headers.deleteCharAt(headers.length()-1));
+            headers.append("{");
+            headers.append("\"headers\": {");
+            httpExt.headers().forEach(h -> headers.append("\""+h.name().asString()+"\"").append(":")
+                    .append("\"" + h.value().asString() +"\"").append(","));
+            headers.deleteCharAt(headers.length()-1);
+            headers.append("}");
+            headers.append("}");
+
+            extension = headers.toString();
         }
 
         return extension;
