@@ -75,7 +75,7 @@ public final class LogCommand
             }
             else if ("counters".equals(type))
             {
-                command = new LogCountersCommand(config, System.out::printf, separator);
+                command = new LogCountersCommand(config, System.out::printf, verbose, separator);
             }
             else if ("queues".equals(type))
             {
