@@ -112,6 +112,8 @@ public final class LogCountersCommand implements Runnable
     @Override
     public void run()
     {
+        valuesByName.clear();
+
         try (Stream<Path> files = Files.walk(directory, 1))
         {
             files.filter(this::isMetricsFile)
