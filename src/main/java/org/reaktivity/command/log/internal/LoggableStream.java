@@ -170,7 +170,7 @@ public final class LoggableStream implements AutoCloseable
         final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
         final int budget = (int) budgets.computeIfAbsent(streamId, id -> 0L);
-        final long initialId = streamId & ~0x8000_0000_0000_0000L;
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.computeIfAbsent(initialId, id -> timestamp);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
@@ -201,8 +201,8 @@ public final class LoggableStream implements AutoCloseable
                 if (roleId != 0x0f)
                 {
                     final Role role = Role.valueOf(roleId);
-                    final boolean isInitial = (streamId & 0x8000_0000_0000_0000L) == 0;
-                    final boolean isReply = (streamId & 0x8000_0000_0000_0000L) != 0;
+                    final boolean isInitial = (streamId & 0x0000_0000_0000_0001L) != 0;
+                    final boolean isReply = (streamId & 0x0000_0000_0000_0001L) == 0;
                     Predicate<String> isHttp11 = label -> label.startsWith("http#");
                     Predicate<String> isHttp2 = label -> label.startsWith("http2#");
                     Predicate<String> isHttpCodec = isHttp11.or(isHttp2);
@@ -233,7 +233,7 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
         final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b - (length + padding));
-        final long initialId = streamId & ~0x8000_0000_0000_0000L;
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
@@ -257,7 +257,7 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = end.trace();
         final long authorization = end.authorization();
         final int budget = (int) budgets.get(streamId);
-        final long initialId = streamId & ~0x8000_0000_0000_0000L;
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
@@ -281,7 +281,7 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = abort.trace();
         final long authorization = abort.authorization();
         final int budget = (int) budgets.get(streamId);
-        final long initialId = streamId & ~0x8000_0000_0000_0000L;
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
@@ -306,7 +306,7 @@ public final class LoggableStream implements AutoCloseable
         final long authorization = signal.authorization();
         final long signalId = signal.signalId();
         final int budget = (int) budgets.get(streamId);
-        final long initialId = streamId & ~0x8000_0000_0000_0000L;
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
@@ -329,7 +329,7 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = reset.streamId();
         final long traceId = reset.trace();
         final int budget = (int) budgets.get(streamId);
-        final long initialId = streamId & ~0x8000_0000_0000_0000L;
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
@@ -355,7 +355,7 @@ public final class LoggableStream implements AutoCloseable
         final int padding = window.padding();
         final long groupId = window.groupId();
         final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b + credit);
-        final long initialId = streamId & ~0x8000_0000_0000_0000L;
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
 
