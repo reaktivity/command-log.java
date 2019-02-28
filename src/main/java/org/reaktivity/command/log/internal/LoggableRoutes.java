@@ -95,19 +95,19 @@ public final class LoggableRoutes implements AutoCloseable
 
                 String extension = extension(route);
                 out.printf("{" +
-                            "\"$nukleus\":\"%s\", " +
-                            "\"$id\":%d, " +
-                            "\"role\":\"%s\", " +
-                            "\"authorization\":%d, " +
-                            "\"localAddress\":\"%s\", " +
-                            "\"remoteAddress\":\"%s\"%s}\n",
-                            nukleusName,
-                            correlationId,
-                            role,
-                            authorization,
-                            localAddress,
-                            remoteAddress,
-                            extension == null ? "" : String.format(", \"extension\": %s", extension));
+                           "\"$nukleus\":\"%s\", " +
+                           "\"$id\":%d, " +
+                           "\"role\":\"%s\", " +
+                           "\"authorization\":%d, " +
+                           "\"localAddress\":\"%s\", " +
+                           "\"remoteAddress\":\"%s\"%s}\n",
+                           nukleusName,
+                           correlationId,
+                           role,
+                           authorization,
+                           localAddress,
+                           remoteAddress,
+                           extension == null ? "" : String.format(", \"extension\": %s", extension));
                 loggedRoutes.add(correlationId);
                 workCnt.incrementAndGet();
             }
