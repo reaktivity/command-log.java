@@ -39,9 +39,9 @@ public final class LoggableRoutes implements AutoCloseable
     private final LongHashSet loggedRoutes;
 
     LoggableRoutes(
-            RoutesLayout routes,
-            Logger logger,
-            IdleStrategy idleStrategy)
+        RoutesLayout routes,
+        Logger logger,
+        IdleStrategy idleStrategy)
     {
         this.routes = routes;
         this.out = logger;
@@ -72,9 +72,9 @@ public final class LoggableRoutes implements AutoCloseable
     }
 
     private int logRoutes(
-            RouteTableFW routeTable,
-            LongHashSet thisIterationRoutes,
-            AtomicInteger workCnt)
+        RouteTableFW routeTable,
+        LongHashSet thisIterationRoutes,
+        AtomicInteger workCnt)
     {
         routeTable.entries().forEach(e ->
         {
@@ -95,19 +95,19 @@ public final class LoggableRoutes implements AutoCloseable
 
                 String extension = extension(route);
                 out.printf("{" +
-                                "\"$nukleus\":\"%s\", " +
-                                "\"$id\":%d, " +
-                                "\"role\":\"%s\", " +
-                                "\"authorization\":%d, " +
-                                "\"localAddress\":\"%s\", " +
-                                "\"remoteAddress\":\"%s\"%s}\n",
-                        nukleusName,
-                        correlationId,
-                        role,
-                        authorization,
-                        localAddress,
-                        remoteAddress,
-                        extension == null ? "" : String.format(", \"extension\": %s", extension));
+                            "\"$nukleus\":\"%s\", " +
+                            "\"$id\":%d, " +
+                            "\"role\":\"%s\", " +
+                            "\"authorization\":%d, " +
+                            "\"localAddress\":\"%s\", " +
+                            "\"remoteAddress\":\"%s\"%s}\n",
+                            nukleusName,
+                            correlationId,
+                            role,
+                            authorization,
+                            localAddress,
+                            remoteAddress,
+                            extension == null ? "" : String.format(", \"extension\": %s", extension));
                 out.printf("\n");
                 loggedRoutes.add(correlationId);
                 workCnt.incrementAndGet();
@@ -127,7 +127,7 @@ public final class LoggableRoutes implements AutoCloseable
     }
 
     private String extension(
-            RouteFW route)
+        RouteFW route)
     {
         final String nukleusName = route.nukleus().asString();
 
@@ -141,14 +141,14 @@ public final class LoggableRoutes implements AutoCloseable
             final String hostname = ext.hostname().asString();
             final String store = ext.store().asString();
             extension = String.format(
-                    "{" +
-                            "\"store\":%s," +
-                            "\"hostname\":%s," +
-                            "\"applicationProtocol\":%s" +
-                            "}",
-                    store != null ? String.format("\"%s\"", store) : null,
-                    hostname != null ? String.format("\"%s\"", hostname) : null,
-                    applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
+            "{" +
+                    "\"store\":%s," +
+                    "\"hostname\":%s," +
+                    "\"applicationProtocol\":%s" +
+                    "}",
+            store != null ? String.format("\"%s\"", store) : null,
+            hostname != null ? String.format("\"%s\"", hostname) : null,
+            applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
         }
 
         return extension;
