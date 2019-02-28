@@ -26,7 +26,6 @@ import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.control.RouteFW;
 import org.reaktivity.command.log.internal.types.control.TlsRouteExFW;
 import org.reaktivity.command.log.internal.types.state.RouteTableFW;
-import org.reaktivity.specification.http.internal.types.control.HttpRouteExFW;
 
 public final class LoggableRoutes implements AutoCloseable
 {
@@ -40,9 +39,9 @@ public final class LoggableRoutes implements AutoCloseable
     private final LongHashSet loggedRoutes;
 
     LoggableRoutes(
-        RoutesLayout routes,
-        Logger logger,
-        IdleStrategy idleStrategy)
+            RoutesLayout routes,
+            Logger logger,
+            IdleStrategy idleStrategy)
     {
         this.routes = routes;
         this.out = logger;
@@ -73,9 +72,9 @@ public final class LoggableRoutes implements AutoCloseable
     }
 
     private int logRoutes(
-        RouteTableFW routeTable,
-        LongHashSet thisIterationRoutes,
-        AtomicInteger workCnt)
+            RouteTableFW routeTable,
+            LongHashSet thisIterationRoutes,
+            AtomicInteger workCnt)
     {
         routeTable.entries().forEach(e ->
         {
@@ -96,19 +95,20 @@ public final class LoggableRoutes implements AutoCloseable
 
                 String extension = extension(route);
                 out.printf("{" +
-                           "\"$nukleus\":\"%s\", " +
-                           "\"$id\":%d, " +
-                           "\"role\":\"%s\", " +
-                           "\"authorization\":%d, " +
-                           "\"localAddress\":\"%s\", " +
-                           "\"remoteAddress\":\"%s\"%s}\n",
-                           nukleusName,
-                           correlationId,
-                           role,
-                           authorization,
-                           localAddress,
-                           remoteAddress,
-                           extension == null ? "" : String.format(", \"extension\": %s", extension));
+                                "\"$nukleus\":\"%s\", " +
+                                "\"$id\":%d, " +
+                                "\"role\":\"%s\", " +
+                                "\"authorization\":%d, " +
+                                "\"localAddress\":\"%s\", " +
+                                "\"remoteAddress\":\"%s\"%s}\n",
+                        nukleusName,
+                        correlationId,
+                        role,
+                        authorization,
+                        localAddress,
+                        remoteAddress,
+                        extension == null ? "" : String.format(", \"extension\": %s", extension));
+                out.printf("\n");
                 loggedRoutes.add(correlationId);
                 workCnt.incrementAndGet();
             }
@@ -127,7 +127,7 @@ public final class LoggableRoutes implements AutoCloseable
     }
 
     private String extension(
-        RouteFW route)
+            RouteFW route)
     {
         final String nukleusName = route.nukleus().asString();
 
@@ -141,28 +141,14 @@ public final class LoggableRoutes implements AutoCloseable
             final String hostname = ext.hostname().asString();
             final String store = ext.store().asString();
             extension = String.format(
-            "{" +
-            "\"store\":%s," +
-            "\"hostname\":%s," +
-            "\"applicationProtocol\":%s" +
-            "}",
-            store != null ? String.format("\"%s\"", store) : null,
-            hostname != null ? String.format("\"%s\"", hostname) : null,
-            applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
-        }
-        else if ("http2".equals(nukleusName))
-        {
-            final HttpRouteExFW httpExt = route.extension().get(new HttpRouteExFW()::wrap);
-            StringBuilder headers = new StringBuilder();
-            headers.append("{");
-            headers.append("\"headers\": {");
-            httpExt.headers().forEach(h -> headers.append("\""+h.name().asString()+"\"").append(":")
-                    .append("\"" + h.value().asString() +"\"").append(","));
-            headers.deleteCharAt(headers.length()-1);
-            headers.append("}");
-            headers.append("}");
-
-            extension = headers.toString();
+                    "{" +
+                            "\"store\":%s," +
+                            "\"hostname\":%s," +
+                            "\"applicationProtocol\":%s" +
+                            "}",
+                    store != null ? String.format("\"%s\"", store) : null,
+                    hostname != null ? String.format("\"%s\"", hostname) : null,
+                    applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
         }
 
         return extension;
