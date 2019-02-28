@@ -142,10 +142,10 @@ public final class LoggableRoutes implements AutoCloseable
             final String store = ext.store().asString();
             extension = String.format(
             "{" +
-                    "\"store\":%s," +
-                    "\"hostname\":%s," +
-                    "\"applicationProtocol\":%s" +
-                    "}",
+            "\"store\":%s," +
+            "\"hostname\":%s," +
+            "\"applicationProtocol\":%s" +
+            "}",
             store != null ? String.format("\"%s\"", store) : null,
             hostname != null ? String.format("\"%s\"", hostname) : null,
             applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
