@@ -108,7 +108,6 @@ public final class LoggableRoutes implements AutoCloseable
                             localAddress,
                             remoteAddress,
                             extension == null ? "" : String.format(", \"extension\": %s", extension));
-                out.printf("\n");
                 loggedRoutes.add(correlationId);
                 workCnt.incrementAndGet();
             }
