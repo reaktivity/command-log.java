@@ -30,9 +30,9 @@ public class LogRoutesCommand implements Runnable
     private static final long MIN_PARK_NS = MILLISECONDS.toNanos(1L);
     private static final int MAX_YIELDS = 300;
     private static final int MAX_SPINS = 200;
-    private final Logger out;
 
     private final LoggableRoutes logger;
+    private final Logger out;
 
     LogRoutesCommand(
         Configuration config,
