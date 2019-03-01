@@ -32,6 +32,7 @@ public class LogRoutesCommand implements Runnable
     private static final int MAX_SPINS = 200;
 
     private final LoggableRoutes logger;
+    private final Logger out;
 
     LogRoutesCommand(
         Configuration config,
@@ -45,11 +46,13 @@ public class LogRoutesCommand implements Runnable
         final IdleStrategy idleStrategy = new BackoffIdleStrategy(MAX_SPINS, MAX_YIELDS, MIN_PARK_NS, MAX_PARK_NS);
 
         this.logger = new LoggableRoutes(layout, out, idleStrategy);
+        this.out = out;
     }
 
     @Override
     public void run()
     {
         logger.process();
+        out.printf("\n");
     }
 }
