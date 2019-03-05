@@ -46,6 +46,7 @@ public final class LogStreamsCommand implements Runnable
     private final LabelManager labels;
     private final boolean verbose;
     private final boolean continuous;
+    private final long affinity;
     private final Logger out;
     private final Long2LongHashMap budgets;
     private final Long2LongHashMap timestamps;
@@ -56,12 +57,14 @@ public final class LogStreamsCommand implements Runnable
         ReaktorConfiguration config,
         Logger out,
         boolean verbose,
-        boolean continuous)
+        boolean continuous,
+        long affinity)
     {
         this.directory = config.directory();
         this.labels = new LabelManager(directory);
         this.verbose = verbose;
         this.continuous = continuous;
+        this.affinity = affinity;
         this.out = out;
         this.budgets = new Long2LongHashMap(-1L);
         this.timestamps = new Long2LongHashMap(-1L);
@@ -70,9 +73,14 @@ public final class LogStreamsCommand implements Runnable
     private boolean isStreamsFile(
         Path path)
     {
-        return path.getNameCount() - directory.getNameCount() == 1 &&
-               STREAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString()).matches() &&
-               Files.isRegularFile(path);
+        final int depth = path.getNameCount() - directory.getNameCount();
+        if (depth != 1 || !Files.isRegularFile(path))
+        {
+            return false;
+        }
+
+        final Matcher matcher = STREAMS_PATTERN.matcher(path.getName(path.getNameCount() - 1).toString());
+        return matcher.matches() && ((1L << parseInt(matcher.group(1))) & affinity) != 0L;
     }
 
     private LoggableStream newLoggable(
