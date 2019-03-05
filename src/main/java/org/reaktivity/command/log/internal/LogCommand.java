@@ -46,6 +46,7 @@ public final class LogCommand
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
         options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
+        options.addOption(builder("a").hasArg().longOpt("affinity").desc("affinity mask").build());
 
         CommandLine cmdline = parser.parse(options, args);
 
@@ -61,6 +62,7 @@ public final class LogCommand
             boolean separator = cmdline.hasOption("separator");
             String type = cmdline.getOptionValue("type", "streams");
             final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
+            final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0x7fff_ffff_ffff_ffffL)));
 
             Properties properties = new Properties();
             properties.setProperty(REAKTOR_DIRECTORY.name(), directory);
@@ -71,7 +73,7 @@ public final class LogCommand
 
             if ("streams".equals(type) || "streams-nowait".equals(type))
             {
-                command = new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type));
+                command = new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type), affinity);
             }
             else if ("counters".equals(type))
             {
