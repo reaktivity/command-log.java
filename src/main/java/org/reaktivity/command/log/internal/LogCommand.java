@@ -62,7 +62,7 @@ public final class LogCommand
             boolean separator = cmdline.hasOption("separator");
             String type = cmdline.getOptionValue("type", "streams");
             final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
-            final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0x7fff_ffff_ffff_ffffL)));
+            final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0xffff_ffff_ffff_ffffL)));
 
             Properties properties = new Properties();
             properties.setProperty(REAKTOR_DIRECTORY.name(), directory);
