@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2018 The Reaktivity Project
+ * Copyright 2016-2019 The Reaktivity Project
  *
  * The Reaktivity Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -62,7 +62,7 @@ public final class LogCommand
             boolean separator = cmdline.hasOption("separator");
             String type = cmdline.getOptionValue("type", "streams");
             final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
-            final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0x7fff_ffff_ffff_ffffL)));
+            final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0xffff_ffff_ffff_ffffL)));
 
             Properties properties = new Properties();
             properties.setProperty(REAKTOR_DIRECTORY.name(), directory);

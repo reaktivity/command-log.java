@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2018 The Reaktivity Project
+ * Copyright 2016-2019 The Reaktivity Project
  *
  * The Reaktivity Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -167,7 +167,6 @@ public final class LoggableStream implements AutoCloseable
         final long routeId = begin.routeId();
         final long streamId = begin.streamId();
         final long traceId = begin.trace();
-        final long correlationId = begin.correlationId();
         final long authorization = begin.authorization();
         final int budget = (int) budgets.computeIfAbsent(streamId, id -> 0L);
         final long initialId = streamId | 0x0000_0000_0000_0001L;
@@ -182,7 +181,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                   format("BEGIN [0x%016x] [0x%016x]", correlationId, authorization));
+                   format("BEGIN [0x%016x]", authorization));
 
         OctetsFW extension = begin.extension();
         if (verbose && extension.sizeof() != 0)
