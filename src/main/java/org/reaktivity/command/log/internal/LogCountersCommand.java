@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 import org.agrona.LangUtil;
 import org.agrona.concurrent.status.CountersReader;
 import org.reaktivity.command.log.internal.layouts.MetricsLayout;
-import org.reaktivity.reaktor.internal.ReaktorConfiguration;
+import org.reaktivity.reaktor.ReaktorConfiguration;
 
 public final class LogCountersCommand implements Runnable
 {
