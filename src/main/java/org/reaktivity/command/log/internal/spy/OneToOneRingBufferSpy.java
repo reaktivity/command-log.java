@@ -19,8 +19,8 @@ import static org.agrona.BitUtil.align;
 import static org.agrona.concurrent.ringbuffer.OneToOneRingBuffer.PADDING_MSG_TYPE_ID;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.ALIGNMENT;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
-import static org.agrona.concurrent.ringbuffer.RecordDescriptor.messageTypeId;
-import static org.agrona.concurrent.ringbuffer.RecordDescriptor.recordLength;
+import static org.agrona.concurrent.ringbuffer.RecordDescriptor.lengthOffset;
+import static org.agrona.concurrent.ringbuffer.RecordDescriptor.typeOffset;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.HEAD_POSITION_OFFSET;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENGTH;
@@ -102,9 +102,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
             while ((bytesRead < contiguousBlockLength) && (messagesRead < messageCountLimit))
             {
                 final int recordIndex = headIndex + bytesRead;
-                final long header = buffer.getLongVolatile(recordIndex);
-
-                final int recordLength = recordLength(header);
+                final int recordLength = buffer.getIntVolatile(lengthOffset(recordIndex));
                 if (recordLength <= 0)
                 {
                     break;
@@ -112,7 +110,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
 
                 bytesRead += align(recordLength, ALIGNMENT);
 
-                final int messageTypeId = messageTypeId(header);
+                final int messageTypeId = buffer.getInt(typeOffset(recordIndex));
                 if (PADDING_MSG_TYPE_ID == messageTypeId)
                 {
                     continue;

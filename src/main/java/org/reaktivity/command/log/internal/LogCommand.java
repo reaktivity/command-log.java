@@ -16,7 +16,7 @@
 package org.reaktivity.command.log.internal;
 
 import static org.apache.commons.cli.Option.builder;
-import static org.reaktivity.reaktor.internal.ReaktorConfiguration.REAKTOR_DIRECTORY;
+import static org.reaktivity.reaktor.ReaktorConfiguration.REAKTOR_DIRECTORY;
 
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +27,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.reaktivity.nukleus.Configuration;
-import org.reaktivity.reaktor.internal.ReaktorConfiguration;
+import org.reaktivity.reaktor.ReaktorConfiguration;
 
 public final class LogCommand
 {

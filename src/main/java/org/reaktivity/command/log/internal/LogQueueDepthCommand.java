@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 import org.agrona.LangUtil;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
-import org.reaktivity.reaktor.internal.ReaktorConfiguration;
+import org.reaktivity.reaktor.ReaktorConfiguration;
 
 public final class LogQueueDepthCommand implements Runnable
 {
