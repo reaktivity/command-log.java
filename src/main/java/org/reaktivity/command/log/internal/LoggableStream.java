@@ -125,6 +125,9 @@ public final class LoggableStream implements AutoCloseable
             return false;
         }
 
+        final long streamId = frame.streamId();
+        budgets.putIfAbsent(streamId, 0L);
+
         switch (msgTypeId)
         {
         case BeginFW.TYPE_ID:
