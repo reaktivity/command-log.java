@@ -20,28 +20,30 @@ import static java.net.InetAddress.getByAddress;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.function.Consumer;
 import java.util.function.LongPredicate;
-import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.TcpAddressFW;
-import org.reaktivity.command.log.internal.types.control.Role;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
 import org.reaktivity.command.log.internal.types.stream.EndFW;
+import org.reaktivity.command.log.internal.types.stream.ExtensionFW;
 import org.reaktivity.command.log.internal.types.stream.FrameFW;
 import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.SignalFW;
 import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
+import org.reaktivity.command.log.internal.types.stream.TlsBeginExFW;
 
 public final class LoggableStream implements AutoCloseable
 {
@@ -55,7 +57,10 @@ public final class LoggableStream implements AutoCloseable
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
 
+    private final ExtensionFW extensionRO = new ExtensionFW();
+
     private final TcpBeginExFW tcpBeginExRO = new TcpBeginExFW();
+    private final TlsBeginExFW tlsBeginExRO = new TlsBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
 
     private final int index;
@@ -69,6 +74,8 @@ public final class LoggableStream implements AutoCloseable
     private final Long2LongHashMap budgets;
     private final Long2LongHashMap timestamps;
     private final LongPredicate nextTimestamp;
+
+    private final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers;
 
     LoggableStream(
         int index,
@@ -92,6 +99,11 @@ public final class LoggableStream implements AutoCloseable
         this.budgets = budgets;
         this.timestamps = timestamps;
         this.nextTimestamp = nextTimestamp;
+
+        this.beginHandlers = new Int2ObjectHashMap<>();
+        this.beginHandlers.put(labels.lookupLabelId("tcp"), this::onTcpBeginEx);
+        this.beginHandlers.put(labels.lookupLabelId("tls"), this::onTlsBeginEx);
+        this.beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
     }
 
     int process()
@@ -125,42 +137,45 @@ public final class LoggableStream implements AutoCloseable
             return false;
         }
 
+        final long streamId = frame.streamId();
+        budgets.putIfAbsent(streamId, 0L);
+
         switch (msgTypeId)
         {
         case BeginFW.TYPE_ID:
             final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            handleBegin(begin);
+            onBegin(begin);
             break;
         case DataFW.TYPE_ID:
             final DataFW data = dataRO.wrap(buffer, index, index + length);
-            handleData(data);
+            onData(data);
             break;
         case EndFW.TYPE_ID:
             final EndFW end = endRO.wrap(buffer, index, index + length);
-            handleEnd(end);
+            onEnd(end);
             break;
         case AbortFW.TYPE_ID:
             final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-            handleAbort(abort);
+            onAbort(abort);
             break;
         case SignalFW.TYPE_ID:
             final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-            handleSignal(signal);
+            onSignal(signal);
             break;
         case ResetFW.TYPE_ID:
             final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-            handleReset(reset);
+            onReset(reset);
             break;
         case WindowFW.TYPE_ID:
             final WindowFW window = windowRO.wrap(buffer, index, index + length);
-            handleWindow(window);
+            onWindow(window);
             break;
         }
 
         return true;
     }
 
-    private void handleBegin(
+    private void onBegin(
         final BeginFW begin)
     {
         final long timestamp = begin.timestamp();
@@ -183,44 +198,21 @@ public final class LoggableStream implements AutoCloseable
         out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
                    format("BEGIN [0x%016x]", authorization));
 
-        OctetsFW extension = begin.extension();
-        if (verbose && extension.sizeof() != 0)
+        if (verbose)
         {
-            if (sourceName.startsWith("tcp") || targetName.startsWith("tcp"))
+            final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+            if (extension != null)
             {
-                TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-                InetSocketAddress localAddress = toInetSocketAddress(tcpBeginEx.localAddress(), tcpBeginEx.localPort());
-                InetSocketAddress remoteAddress = toInetSocketAddress(tcpBeginEx.remoteAddress(), tcpBeginEx.remotePort());
-                out.printf("[%d] %s\t%s\n", timestamp, localAddress, remoteAddress);
-            }
-
-            if (sourceName.startsWith("http") || targetName.startsWith("http"))
-            {
-                final int roleId = (int)(routeId >> 28) & 0x0f;
-                if (roleId != 0x0f)
+                final Consumer<BeginFW> beginHandler = beginHandlers.get(extension.typeId());
+                if (beginHandler != null)
                 {
-                    final Role role = Role.valueOf(roleId);
-                    final boolean isInitial = (streamId & 0x0000_0000_0000_0001L) != 0;
-                    final boolean isReply = (streamId & 0x0000_0000_0000_0001L) == 0;
-                    Predicate<String> isHttp11 = label -> label.startsWith("http#");
-                    Predicate<String> isHttp2 = label -> label.startsWith("http2#");
-                    Predicate<String> isHttpCodec = isHttp11.or(isHttp2);
-
-                    if (!(role == Role.SERVER && isInitial && isHttpCodec.test(targetName)) &&
-                        !(role == Role.SERVER && isReply && isHttpCodec.test(sourceName)) &&
-                        !(role == Role.CLIENT && isInitial && isHttpCodec.test(sourceName)) &&
-                        !(role == Role.CLIENT && isReply && isHttpCodec.test(targetName)))
-                    {
-                        HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-                        httpBeginEx.headers()
-                                .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
-                    }
+                    beginHandler.accept(begin);
                 }
             }
         }
     }
 
-    private void handleData(
+    private void onData(
         final DataFW data)
     {
         final long timestamp = data.timestamp();
@@ -247,7 +239,7 @@ public final class LoggableStream implements AutoCloseable
                       format("DATA [%d] [%d] [%x] [0x%016x]", length, padding, flags, authorization));
     }
 
-    private void handleEnd(
+    private void onEnd(
         final EndFW end)
     {
         final long timestamp = end.timestamp();
@@ -271,7 +263,7 @@ public final class LoggableStream implements AutoCloseable
                 format("END [0x%016x]", authorization));
     }
 
-    private void handleAbort(
+    private void onAbort(
         final AbortFW abort)
     {
         final long timestamp = abort.timestamp();
@@ -295,7 +287,7 @@ public final class LoggableStream implements AutoCloseable
                 format("ABORT [0x%016x]", authorization));
     }
 
-    private void handleSignal(
+    private void onSignal(
         final SignalFW signal)
     {
         final long timestamp = signal.timestamp();
@@ -320,7 +312,7 @@ public final class LoggableStream implements AutoCloseable
                 format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
-    private void handleReset(
+    private void onReset(
         final ResetFW reset)
     {
         final long timestamp = reset.timestamp();
@@ -343,7 +335,7 @@ public final class LoggableStream implements AutoCloseable
                 "RESET");
     }
 
-    private void handleWindow(
+    private void onWindow(
         final WindowFW window)
     {
         final long timestamp = window.timestamp();
@@ -409,5 +401,42 @@ public final class LoggableStream implements AutoCloseable
         }
 
         return socketAddress;
+    }
+
+    private void onTcpBeginEx(
+        final BeginFW begin)
+    {
+        final long timestamp = begin.timestamp();
+        final OctetsFW extension = begin.extension();
+
+        final TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final InetSocketAddress localAddress = toInetSocketAddress(tcpBeginEx.localAddress(), tcpBeginEx.localPort());
+        final InetSocketAddress remoteAddress = toInetSocketAddress(tcpBeginEx.remoteAddress(), tcpBeginEx.remotePort());
+
+        out.printf("[%d] %s\t%s\n", timestamp, localAddress, remoteAddress);
+    }
+
+    private void onTlsBeginEx(
+        final BeginFW begin)
+    {
+        final long timestamp = begin.timestamp();
+        final OctetsFW extension = begin.extension();
+
+        final TlsBeginExFW tlsBeginEx = tlsBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final String hostname = tlsBeginEx.hostname().asString();
+        final String protocol = tlsBeginEx.protocol().asString();
+
+        out.printf("[%d] %s\t%s\n", timestamp, hostname, protocol);
+    }
+
+    private void onHttpBeginEx(
+        final BeginFW begin)
+    {
+        final long timestamp = begin.timestamp();
+        final OctetsFW extension = begin.extension();
+
+        final HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        httpBeginEx.headers()
+                   .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
     }
 }

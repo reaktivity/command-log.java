@@ -35,6 +35,8 @@ import org.agrona.LangUtil;
 
 public final class LabelManager
 {
+    private static final Integer NO_LABEL_ID = Integer.valueOf(-1);
+
     private final List<String> labels;
     private final Map<String, Integer> labelIds;
     private final Path labelsPath;
@@ -59,7 +61,19 @@ public final class LabelManager
             checkSnapshot();
         }
 
-        return  labelId >= 1 && labelId <= labels.size() ? labels.get(labelId - 1) : "??";
+        return labelId >= 1 && labelId <= labels.size() ? labels.get(labelId - 1) : "??";
+    }
+
+    public int lookupLabelId(
+        String label)
+    {
+        int labelId = labelIds.getOrDefault(label, NO_LABEL_ID);
+        if (labelId == NO_LABEL_ID)
+        {
+            checkSnapshot();
+            labelId = labelIds.getOrDefault(label, NO_LABEL_ID);
+        }
+        return labelId;
     }
 
     private void checkSnapshot()

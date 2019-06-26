@@ -136,7 +136,7 @@ public final class LoggableRoutes implements AutoCloseable
             TlsRouteExFW ext = new TlsRouteExFW();
             final int index = route.extension().offset();
             ext.wrap(route.extension().buffer(), index, index + route.extension().sizeof());
-            final String applicationProtocol = ext.applicationProtocol().asString();
+            final String protocol = ext.protocol().asString();
             final String hostname = ext.hostname().asString();
             final String store = ext.store().asString();
             extension = String.format(
@@ -147,7 +147,7 @@ public final class LoggableRoutes implements AutoCloseable
             "}",
             store != null ? String.format("\"%s\"", store) : null,
             hostname != null ? String.format("\"%s\"", hostname) : null,
-            applicationProtocol != null ? String.format("\"%s\"", applicationProtocol) : null);
+            protocol != null ? String.format("\"%s\"", protocol) : null);
         }
 
         return extension;
