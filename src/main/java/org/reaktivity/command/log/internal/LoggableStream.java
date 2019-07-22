@@ -308,7 +308,7 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+        out.printf(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
                 format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
