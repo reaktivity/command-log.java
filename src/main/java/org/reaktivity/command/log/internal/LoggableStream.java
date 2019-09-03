@@ -39,6 +39,7 @@ import org.reaktivity.command.log.internal.types.stream.EndFW;
 import org.reaktivity.command.log.internal.types.stream.ExtensionFW;
 import org.reaktivity.command.log.internal.types.stream.FrameFW;
 import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
+import org.reaktivity.command.log.internal.types.stream.HttpEndExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.SignalFW;
 import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
@@ -62,6 +63,7 @@ public final class LoggableStream implements AutoCloseable
     private final TcpBeginExFW tcpBeginExRO = new TcpBeginExFW();
     private final TlsBeginExFW tlsBeginExRO = new TlsBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
+    private final HttpEndExFW httpEndExRO = new HttpEndExFW();
 
     private final int index;
     private final LabelManager labels;
@@ -76,6 +78,7 @@ public final class LoggableStream implements AutoCloseable
     private final LongPredicate nextTimestamp;
 
     private final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers;
+    private final Int2ObjectHashMap<Consumer<EndFW>> endHandlers;
 
     LoggableStream(
         int index,
@@ -104,6 +107,10 @@ public final class LoggableStream implements AutoCloseable
         this.beginHandlers.put(labels.lookupLabelId("tcp"), this::onTcpBeginEx);
         this.beginHandlers.put(labels.lookupLabelId("tls"), this::onTlsBeginEx);
         this.beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
+        this.beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
+
+        this.endHandlers = new Int2ObjectHashMap<>();
+        this.endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
     }
 
     int process()
@@ -261,6 +268,19 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
                 format("END [0x%016x]", authorization));
+
+        if (verbose)
+        {
+            final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
+            if (extension != null)
+            {
+                final Consumer<EndFW> endHandler = endHandlers.get(extension.typeId());
+                if (endHandler != null)
+                {
+                    endHandler.accept(end);
+                }
+            }
+        }
     }
 
     private void onAbort(
@@ -437,6 +457,17 @@ public final class LoggableStream implements AutoCloseable
 
         final HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpBeginEx.headers()
+                   .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
+    }
+
+    private void onHttpEndEx(
+        final EndFW end)
+    {
+        final long timestamp = end.timestamp();
+        final OctetsFW extension = end.extension();
+
+        final HttpEndExFW httpEndEx = httpEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        httpEndEx.trailers()
                    .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
     }
 }
