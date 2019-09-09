@@ -95,4 +95,9 @@ public final class LogCommand
             } while (interval > 0);
         }
     }
+
+    private LogCommand()
+    {
+        // utility
+    }
 }

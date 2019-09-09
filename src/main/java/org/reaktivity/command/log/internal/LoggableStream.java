@@ -42,8 +42,8 @@ import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.SignalFW;
 import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
-import org.reaktivity.command.log.internal.types.stream.WindowFW;
 import org.reaktivity.command.log.internal.types.stream.TlsBeginExFW;
+import org.reaktivity.command.log.internal.types.stream.WindowFW;
 
 public final class LoggableStream implements AutoCloseable
 {
@@ -377,7 +377,8 @@ public final class LoggableStream implements AutoCloseable
                 address = new byte[4];
                 tcpAddress.ipv4Address().get((b, o, l) ->
                 {
-                    b.getBytes(o, address); return address;
+                    b.getBytes(o, address);
+                    return address;
                 });
                 socketAddress = new InetSocketAddress(getByAddress(address), tcpPort);
                 break;
@@ -385,7 +386,8 @@ public final class LoggableStream implements AutoCloseable
                 address = new byte[16];
                 tcpAddress.ipv4Address().get((b, o, l) ->
                 {
-                    b.getBytes(o, address); return address;
+                    b.getBytes(o, address);
+                    return address;
                 });
                 socketAddress = new InetSocketAddress(getByAddress(address), tcpPort);
                 break;
