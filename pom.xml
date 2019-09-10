@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.36</version>
+  <version>0.37</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -36,18 +36,18 @@
   </scm>
 
   <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>9</maven.compiler.source>
+    <maven.compiler.target>9</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <reaktor.version>0.94</reaktor.version>
+    <reaktor.version>0.95</reaktor.version>
     <nukleus.plugin.version>0.33</nukleus.plugin.version>
-    <nukleus.http.spec.version>0.74</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>0.39</nukleus.tls.spec.version>
-    <nukleus.tcp.spec.version>0.51</nukleus.tcp.spec.version>
+    <nukleus.http.spec.version>0.75</nukleus.http.spec.version>
+    <nukleus.tls.spec.version>0.40</nukleus.tls.spec.version>
+    <nukleus.tcp.spec.version>0.52</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
@@ -130,7 +130,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.0</version>
         <configuration>
           <sourceDirectories>
             <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
@@ -149,7 +149,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>8.18</version>
+            <version>8.23</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -179,12 +179,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.1</version>
+        <version>3.8.0</version>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.7.9</version>
+        <version>0.8.2</version>
         <configuration>
           <rules>
             <rule>
@@ -216,7 +216,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.17</version>
+        <version>2.22.1</version>
         <configuration>
           <argLine>@{argLine}</argLine>
         </configuration>
@@ -224,7 +224,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>2.19.1</version>
+        <version>2.22.1</version>
         <configuration>
           <argLine>@{argLine}</argLine>
         </configuration>
