@@ -107,7 +107,6 @@ public final class LoggableStream implements AutoCloseable
         this.beginHandlers.put(labels.lookupLabelId("tcp"), this::onTcpBeginEx);
         this.beginHandlers.put(labels.lookupLabelId("tls"), this::onTlsBeginEx);
         this.beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
-        this.beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
 
         this.endHandlers = new Int2ObjectHashMap<>();
         this.endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
