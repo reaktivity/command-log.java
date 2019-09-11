@@ -34,6 +34,7 @@ import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.TcpAddressFW;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
+import org.reaktivity.command.log.internal.types.stream.ChallengeFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
 import org.reaktivity.command.log.internal.types.stream.EndFW;
 import org.reaktivity.command.log.internal.types.stream.ExtensionFW;
@@ -53,10 +54,11 @@ public final class LoggableStream implements AutoCloseable
     private final DataFW dataRO = new DataFW();
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
-    private final SignalFW signalRO = new SignalFW();
 
     private final ResetFW resetRO = new ResetFW();
     private final WindowFW windowRO = new WindowFW();
+    private final SignalFW signalRO = new SignalFW();
+    private final ChallengeFW challengeRO = new ChallengeFW();
 
     private final ExtensionFW extensionRO = new ExtensionFW();
 
@@ -164,10 +166,6 @@ public final class LoggableStream implements AutoCloseable
             final AbortFW abort = abortRO.wrap(buffer, index, index + length);
             onAbort(abort);
             break;
-        case SignalFW.TYPE_ID:
-            final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-            onSignal(signal);
-            break;
         case ResetFW.TYPE_ID:
             final ResetFW reset = resetRO.wrap(buffer, index, index + length);
             onReset(reset);
@@ -175,6 +173,14 @@ public final class LoggableStream implements AutoCloseable
         case WindowFW.TYPE_ID:
             final WindowFW window = windowRO.wrap(buffer, index, index + length);
             onWindow(window);
+            break;
+        case SignalFW.TYPE_ID:
+            final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+            onSignal(signal);
+            break;
+        case ChallengeFW.TYPE_ID:
+            final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+            onChallenge(challenge);
             break;
         }
 
@@ -306,31 +312,6 @@ public final class LoggableStream implements AutoCloseable
                 format("ABORT [0x%016x]", authorization));
     }
 
-    private void onSignal(
-        final SignalFW signal)
-    {
-        final long timestamp = signal.timestamp();
-        final long routeId = signal.routeId();
-        final long streamId = signal.streamId();
-        final long traceId = signal.trace();
-        final long authorization = signal.authorization();
-        final long signalId = signal.signalId();
-        final int budget = (int) budgets.get(streamId);
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
-        final long timeStart = timestamps.get(initialId);
-        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
-
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
-
-        out.printf(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                format("SIGNAL [%d] [0x%016x]", signalId, authorization));
-    }
-
     private void onReset(
         final ResetFW reset)
     {
@@ -378,6 +359,55 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
                 format("WINDOW [%d] [%d] [%d]", credit, padding, groupId));
+    }
+
+    private void onSignal(
+        final SignalFW signal)
+    {
+        final long timestamp = signal.timestamp();
+        final long routeId = signal.routeId();
+        final long streamId = signal.streamId();
+        final long traceId = signal.trace();
+        final long authorization = signal.authorization();
+        final long signalId = signal.signalId();
+        final int budget = (int) budgets.get(streamId);
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
+        final long timeStart = timestamps.get(initialId);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
+
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                format("SIGNAL [%d] [0x%016x]", signalId, authorization));
+    }
+
+    private void onChallenge(
+        final ChallengeFW challenge)
+    {
+        final long timestamp = challenge.timestamp();
+        final long routeId = challenge.routeId();
+        final long streamId = challenge.streamId();
+        final long traceId = challenge.trace();
+        final long authorization = challenge.authorization();
+        final int budget = (int) budgets.get(streamId);
+        final long initialId = streamId | 0x0000_0000_0000_0001L;
+        final long timeStart = timestamps.get(initialId);
+        final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
+
+        final int localId = (int)(routeId >> 48) & 0xffff;
+        final int remoteId = (int)(routeId >> 32) & 0xffff;
+        final int sourceId = streamId == initialId ? localId : remoteId;
+        final int targetId = streamId == initialId ? remoteId : localId;
+        final String sourceName = labels.lookupLabel(sourceId);
+        final String targetName = labels.lookupLabel(targetId);
+
+        out.printf(throttleFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
+                format("CHALLENGE [0x%016x]", authorization));
     }
 
     private InetSocketAddress toInetSocketAddress(
