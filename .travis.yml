@@ -14,3 +14,6 @@ branches:
   - "/^release\\/.*$/"
 after_success:
 - bash <(curl -s https://codecov.io/bash)
+notifications:
+  slack:
+    secure: aofeYj3/go0UwUhlIAU6j84UM+4xBSiK1gW/uC20G7lM7TFhNEJCcVfXs2/ANpU1V/cnRY5NeL5sVfeb+zVIfXMvQ1bA6RKW/DlZmozNNceJltBWGq8W2/I31NLPaY0ZTvasoodsruPjyhKiRZsRvxnghTNqh+WvH7x9cVrrUz5EQcPTFPUy1YokE6aOaf394U6dLsIKfx5gdSOkjL/VVjLRGqYa+y66QMtfMBsfE56xOI+bVeealTd/I6P+ZzJQdgc/HsX0sBrsjsXPA5qzco0GXQrb17sdmG1hHAUv/neawT+6/e2AeQlFdSeluhgwjPTajAwYmAHO5qlUMsktxY87rwcxLod8vbY+7RJK1g+jKp9zSyoN76UeYwKLN/RC4Sg/IZRXlzJrlsaNv3i/sxxW6OvB7hchGVDRevu2lVtDNaB4bSydVBeYMS2bRd7Bw+t5Oxo39zBXbcI4YQCOE+NgCPt/ADAP3ye/NrQvYedF0Lul7eFPDTnFEXXCA3dfgaHdPV9ccdrvaLADX0rdqm3nlDykhSX8Xj8UkQTJgA2Vp51Z9yvMGicACt0Up9eSCCKSpWXuutVIBF2OAupjsDn7yfG2a6Kkk4QTRoUZr61ZyOpEteSHlfi64r7gsL70AV+0sPexSdG2gyCIpxc6ruAeixybjHEmkRSULNQOSyc=
