@@ -127,7 +127,7 @@ public final class LogStreamsCommand implements Runnable
             {
                 workCount = 0;
 
-                for (int i=0; i < loggables.length; i++)
+                for (int i = 0; i < loggables.length; i++)
                 {
                     workCount += loggables[i].process();
                 }
