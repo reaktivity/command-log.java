@@ -44,10 +44,10 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <reaktor.version>0.96</reaktor.version>
-    <nukleus.plugin.version>0.40</nukleus.plugin.version>
-    <nukleus.http.spec.version>0.76</nukleus.http.spec.version>
+    <nukleus.plugin.version>0.41</nukleus.plugin.version>
+    <nukleus.http.spec.version>develop-SNAPSHOT</nukleus.http.spec.version>
     <nukleus.tls.spec.version>0.41</nukleus.tls.spec.version>
-    <nukleus.tcp.spec.version>0.53</nukleus.tcp.spec.version>
+    <nukleus.tcp.spec.version>develop-SNAPSHOT</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
