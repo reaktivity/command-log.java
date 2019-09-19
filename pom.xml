@@ -46,7 +46,7 @@
     <reaktor.version>0.96</reaktor.version>
     <nukleus.plugin.version>0.41</nukleus.plugin.version>
     <nukleus.http.spec.version>develop-SNAPSHOT</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>0.41</nukleus.tls.spec.version>
+    <nukleus.tls.spec.version>develop-SNAPSHOT</nukleus.tls.spec.version>
     <nukleus.tcp.spec.version>develop-SNAPSHOT</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
