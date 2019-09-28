@@ -232,10 +232,10 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = data.streamId();
         final long traceId = data.trace();
         final int length = data.length();
-        final int padding = data.padding();
+        final int reserved = data.reserved();
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
-        final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b - (length + padding));
+        final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b - (length + reserved));
         final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
@@ -248,7 +248,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, timestamp, budget, traceId, sourceName, targetName, routeId, streamId, timeOffset,
-                      format("DATA [%d] [%d] [%x] [0x%016x]", length, padding, flags, authorization));
+                      format("DATA [%d] [%d] [%x] [0x%016x]", length, reserved, flags, authorization));
     }
 
     private void onEnd(
