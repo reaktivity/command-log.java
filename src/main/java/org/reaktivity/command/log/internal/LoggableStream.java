@@ -235,7 +235,7 @@ public final class LoggableStream implements AutoCloseable
         final int reserved = data.reserved();
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
-        final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b - (length + reserved));
+        final int budget = (int) (long) budgets.computeIfPresent(streamId, (i, b) -> b - reserved);
         final long initialId = streamId | 0x0000_0000_0000_0001L;
         final long timeStart = timestamps.get(initialId);
         final long timeOffset = timeStart != -1L ? timestamp - timeStart : -1L;
