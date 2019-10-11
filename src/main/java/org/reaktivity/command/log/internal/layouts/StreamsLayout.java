@@ -28,6 +28,7 @@ import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 import org.reaktivity.command.log.internal.spy.OneToOneRingBufferSpy;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.spy.RingBufferSpy.SpyPosition;
 
 public final class StreamsLayout extends Layout
 {
@@ -55,6 +56,7 @@ public final class StreamsLayout extends Layout
         private long streamsCapacity;
         private Path path;
         private boolean readonly;
+        private SpyPosition position;
 
         public Builder streamsCapacity(
             long streamsCapacity)
@@ -67,6 +69,13 @@ public final class StreamsLayout extends Layout
             Path path)
         {
             this.path = path;
+            return this;
+        }
+
+        public Builder spyAt(
+            SpyPosition position)
+        {
+            this.position = position;
             return this;
         }
 
@@ -91,7 +100,14 @@ public final class StreamsLayout extends Layout
 
             final AtomicBuffer atomicStreams = new UnsafeBuffer(mappedStreams);
 
-            return new StreamsLayout(new OneToOneRingBufferSpy(atomicStreams));
+            final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams);
+
+            if (position != null)
+            {
+                spy.spyAt(position);
+            }
+
+            return new StreamsLayout(spy);
         }
     }
 }

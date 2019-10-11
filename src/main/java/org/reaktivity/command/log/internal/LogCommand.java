@@ -20,12 +20,15 @@ import static org.reaktivity.reaktor.ReaktorConfiguration.REAKTOR_DIRECTORY;
 
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
+import org.reaktivity.command.log.internal.spy.RingBufferSpy.SpyPosition;
 import org.reaktivity.nukleus.Configuration;
 import org.reaktivity.reaktor.ReaktorConfiguration;
 
@@ -68,24 +71,31 @@ public final class LogCommand
             properties.setProperty(REAKTOR_DIRECTORY.name(), directory);
 
             final ReaktorConfiguration config = new ReaktorConfiguration(new Configuration(), properties);
+            final Logger out = System.out::printf;
 
             Runnable command = null;
 
-            if ("streams".equals(type) || "streams-nowait".equals(type))
+            final Matcher matcher = Pattern.compile("streams(?:-(?<option>[a-z]+))?").matcher(type);
+            if (matcher.matches())
             {
-                command = new LogStreamsCommand(config, System.out::printf, verbose, "streams".equals(type), affinity);
+                final String option = matcher.group("option");
+                final boolean continuous = !"nowait".equals(option);
+                final SpyPosition position = continuous && option != null ?
+                        SpyPosition.valueOf(option.toUpperCase()) :
+                        SpyPosition.ZERO;
+                command = new LogStreamsCommand(config, out, verbose, continuous, affinity, position);
             }
             else if ("counters".equals(type))
             {
-                command = new LogCountersCommand(config, System.out::printf, verbose, separator);
+                command = new LogCountersCommand(config, out, verbose, separator);
             }
             else if ("queues".equals(type))
             {
-                command = new LogQueueDepthCommand(config, System.out::printf, verbose, separator);
+                command = new LogQueueDepthCommand(config, out, verbose, separator);
             }
             else if ("routes".equals(type))
             {
-                command = new LogRoutesCommand(config, System.out::printf, verbose);
+                command = new LogRoutesCommand(config, out, verbose);
             }
 
             do

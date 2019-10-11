@@ -20,6 +20,15 @@ import org.reaktivity.nukleus.function.MessagePredicate;
 
 public interface RingBufferSpy
 {
+    enum SpyPosition
+    {
+        ZERO,
+        HEAD,
+        TAIL
+    }
+
+    void spyAt(SpyPosition position);
+
     int spy(MessagePredicate handler);
     int spy(MessagePredicate handler, int messageCountLimit);
 

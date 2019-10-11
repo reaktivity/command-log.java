@@ -35,9 +35,8 @@ import org.reaktivity.nukleus.function.MessagePredicate;
 public class OneToOneRingBufferSpy implements RingBufferSpy
 {
     private final int capacity;
-    private final AtomicLong headPosition;
+    private final AtomicLong spyPosition;
     private final AtomicBuffer buffer;
-
 
     public OneToOneRingBufferSpy(
         final AtomicBuffer buffer)
@@ -48,12 +47,25 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
 
         buffer.verifyAlignment();
 
-        headPosition = new AtomicLong();
+        spyPosition = new AtomicLong();
     }
 
-    public void resetHead()
+    @Override
+    public void spyAt(
+        SpyPosition position)
     {
-        headPosition.lazySet(buffer.getLong(capacity + HEAD_POSITION_OFFSET));
+        switch (position)
+        {
+        case ZERO:
+            spyPosition.lazySet(0);
+            break;
+        case HEAD:
+            spyPosition.lazySet(buffer.getLong(capacity + HEAD_POSITION_OFFSET));
+            break;
+        case TAIL:
+            spyPosition.lazySet(buffer.getLong(capacity + TAIL_POSITION_OFFSET));
+            break;
+        }
     }
 
     @Override
@@ -89,7 +101,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         int messagesRead = 0;
 
         final AtomicBuffer buffer = this.buffer;
-        final long head = headPosition.get();
+        final long head = spyPosition.get();
 
         int bytesRead = 0;
 
@@ -128,7 +140,7 @@ public class OneToOneRingBufferSpy implements RingBufferSpy
         {
             if (bytesRead != 0)
             {
-                headPosition.lazySet(head + bytesRead);
+                spyPosition.lazySet(head + bytesRead);
             }
         }
 
