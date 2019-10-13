@@ -31,6 +31,7 @@ import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
+import org.reaktivity.command.log.internal.spy.RingBufferSpy.SpyPosition;
 import org.reaktivity.reaktor.ReaktorConfiguration;
 
 public final class LogStreamsCommand implements Runnable
@@ -47,6 +48,7 @@ public final class LogStreamsCommand implements Runnable
     private final boolean verbose;
     private final boolean continuous;
     private final long affinity;
+    private final SpyPosition position;
     private final Logger out;
     private final Long2LongHashMap budgets;
     private final Long2LongHashMap timestamps;
@@ -58,13 +60,15 @@ public final class LogStreamsCommand implements Runnable
         Logger out,
         boolean verbose,
         boolean continuous,
-        long affinity)
+        long affinity,
+        SpyPosition position)
     {
         this.directory = config.directory();
         this.labels = new LabelManager(directory);
         this.verbose = verbose;
         this.continuous = continuous;
         this.affinity = affinity;
+        this.position = position;
         this.out = out;
         this.budgets = new Long2LongHashMap(-1L);
         this.timestamps = new Long2LongHashMap(-1L);
@@ -94,6 +98,7 @@ public final class LogStreamsCommand implements Runnable
         StreamsLayout layout = new StreamsLayout.Builder()
                 .path(path)
                 .readonly(true)
+                .spyAt(position)
                 .build();
 
         return new LoggableStream(index, labels, budgets, layout, out, verbose, timestamps, this::nextTimestamp);
