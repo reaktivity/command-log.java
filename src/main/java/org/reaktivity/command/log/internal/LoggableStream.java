@@ -92,8 +92,8 @@ public final class LoggableStream implements AutoCloseable
     {
         this.index = index;
         this.labels = labels;
-        this.streamFormat = "[%02d/%08x] [0x%08x] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] %s\n";
-        this.throttleFormat = "[%02d/%08x] [0x%08x] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] %s\n";
+        this.streamFormat = "[%02d/%08x] [0x%016x] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] %s\n";
+        this.throttleFormat = "[%02d/%08x] [0x%016x] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] %s\n";
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
