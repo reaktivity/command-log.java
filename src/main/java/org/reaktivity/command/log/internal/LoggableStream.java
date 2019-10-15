@@ -73,6 +73,7 @@ public final class LoggableStream implements AutoCloseable
     private final LabelManager labels;
     private final String streamFormat;
     private final String throttleFormat;
+    private final String verboseFormat;
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final Logger out;
@@ -94,6 +95,7 @@ public final class LoggableStream implements AutoCloseable
         this.labels = labels;
         this.streamFormat = "[%02d/%08x] [0x%016x] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] %s\n";
         this.throttleFormat = "[%02d/%08x] [0x%016x] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] %s\n";
+        this.verboseFormat = "[%02d/%08x] [0x%016x] %s\n";
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
@@ -461,6 +463,7 @@ public final class LoggableStream implements AutoCloseable
     private void onTcpBeginEx(
         final BeginFW begin)
     {
+        final int offset = begin.offset() - HEADER_LENGTH;
         final long timestamp = begin.timestamp();
         final OctetsFW extension = begin.extension();
 
@@ -468,12 +471,13 @@ public final class LoggableStream implements AutoCloseable
         final InetSocketAddress localAddress = toInetSocketAddress(tcpBeginEx.localAddress(), tcpBeginEx.localPort());
         final InetSocketAddress remoteAddress = toInetSocketAddress(tcpBeginEx.remoteAddress(), tcpBeginEx.remotePort());
 
-        out.printf("[%d] %s\t%s\n", timestamp, localAddress, remoteAddress);
+        out.printf(verboseFormat, index, offset, timestamp, format("%s\t%s", localAddress, remoteAddress));
     }
 
     private void onTlsBeginEx(
         final BeginFW begin)
     {
+        final int offset = begin.offset() - HEADER_LENGTH;
         final long timestamp = begin.timestamp();
         final OctetsFW extension = begin.extension();
 
@@ -481,28 +485,32 @@ public final class LoggableStream implements AutoCloseable
         final String hostname = tlsBeginEx.hostname().asString();
         final String protocol = tlsBeginEx.protocol().asString();
 
-        out.printf("[%d] %s\t%s\n", timestamp, hostname, protocol);
+        out.printf(verboseFormat, index, offset, timestamp, format("%s\t%s", hostname, protocol));
     }
 
     private void onHttpBeginEx(
         final BeginFW begin)
     {
+        final int offset = begin.offset() - HEADER_LENGTH;
         final long timestamp = begin.timestamp();
         final OctetsFW extension = begin.extension();
 
         final HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpBeginEx.headers()
-                   .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
+                   .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+                                           format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onHttpEndEx(
         final EndFW end)
     {
+        final int offset = end.offset() - HEADER_LENGTH;
         final long timestamp = end.timestamp();
         final OctetsFW extension = end.extension();
 
         final HttpEndExFW httpEndEx = httpEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpEndEx.trailers()
-                   .forEach(h -> out.printf("[%d] %s: %s\n", timestamp, h.name().asString(), h.value().asString()));
+                 .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+                                         format("%s: %s", h.name().asString(), h.value().asString())));
     }
 }
