@@ -195,6 +195,7 @@ public final class LoggableStream implements AutoCloseable
         final long streamId = begin.streamId();
         final long traceId = begin.traceId();
         final long authorization = begin.authorization();
+        final long affinity = begin.affinity();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
 
         final int localId = (int)(routeId >> 48) & 0xffff;
@@ -205,7 +206,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                   format("BEGIN [0x%016x]", authorization));
+                   format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
 
         if (verbose)
         {
@@ -229,6 +230,7 @@ public final class LoggableStream implements AutoCloseable
         final long routeId = data.routeId();
         final long streamId = data.streamId();
         final long traceId = data.traceId();
+        final long budgetId = data.budgetId();
         final int length = data.length();
         final int reserved = data.reserved();
         final long authorization = data.authorization();
@@ -243,7 +245,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                      format("DATA [%d] [%d] [%x] [0x%016x]", length, reserved, flags, authorization));
+                      format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]", budgetId, length, reserved, flags, authorization));
     }
 
     private void onEnd(
@@ -345,7 +347,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("WINDOW [%d] [%d] [%016x]", credit, padding, budgetId));
+                format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
     }
 
     private void onSignal(
