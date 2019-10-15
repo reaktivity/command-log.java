@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.agrona.LangUtil;
-import org.agrona.collections.Long2LongHashMap;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.reaktivity.command.log.internal.labels.LabelManager;
@@ -50,8 +49,6 @@ public final class LogStreamsCommand implements Runnable
     private final long affinity;
     private final SpyPosition position;
     private final Logger out;
-    private final Long2LongHashMap budgets;
-    private final Long2LongHashMap timestamps;
 
     private long nextTimestamp = Long.MAX_VALUE;
 
@@ -70,8 +67,6 @@ public final class LogStreamsCommand implements Runnable
         this.affinity = affinity;
         this.position = position;
         this.out = out;
-        this.budgets = new Long2LongHashMap(-1L);
-        this.timestamps = new Long2LongHashMap(-1L);
     }
 
     private boolean isStreamsFile(
@@ -101,7 +96,7 @@ public final class LogStreamsCommand implements Runnable
                 .spyAt(position)
                 .build();
 
-        return new LoggableStream(index, labels, budgets, layout, out, verbose, timestamps, this::nextTimestamp);
+        return new LoggableStream(index, labels, layout, out, verbose, this::nextTimestamp);
     }
 
     private void onDiscovered(
