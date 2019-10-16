@@ -15,7 +15,6 @@
  */
 package org.reaktivity.command.log.internal.layouts;
 
-import static org.agrona.IoUtil.createEmptyFile;
 import static org.agrona.IoUtil.mapExistingFile;
 import static org.agrona.IoUtil.unmap;
 
@@ -25,7 +24,6 @@ import java.nio.file.Path;
 
 import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.concurrent.ringbuffer.RingBufferDescriptor;
 import org.reaktivity.command.log.internal.spy.OneToOneRingBufferSpy;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy.SpyPosition;
@@ -53,17 +51,9 @@ public final class StreamsLayout extends Layout
 
     public static final class Builder extends Layout.Builder<StreamsLayout>
     {
-        private long streamsCapacity;
         private Path path;
         private boolean readonly;
         private SpyPosition position;
-
-        public Builder streamsCapacity(
-            long streamsCapacity)
-        {
-            this.streamsCapacity = streamsCapacity;
-            return this;
-        }
 
         public Builder path(
             Path path)
@@ -91,10 +81,7 @@ public final class StreamsLayout extends Layout
         {
             final File layoutFile = path.toFile();
 
-            if (!readonly)
-            {
-                createEmptyFile(layoutFile, streamsCapacity + RingBufferDescriptor.TRAILER_LENGTH);
-            }
+            assert readonly;
 
             final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
 
