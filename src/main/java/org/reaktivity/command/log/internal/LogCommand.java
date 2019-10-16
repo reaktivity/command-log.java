@@ -85,6 +85,10 @@ public final class LogCommand
                         SpyPosition.ZERO;
                 command = new LogStreamsCommand(config, out, verbose, continuous, affinity, position);
             }
+            else if ("buffers".equals(type))
+            {
+                command = new LogBuffersCommand(config, out, verbose);
+            }
             else if ("counters".equals(type))
             {
                 command = new LogCountersCommand(config, out, verbose, separator);
