@@ -61,8 +61,7 @@ public final class LogCommand
         {
             out.printf("version: %s\n", LogCommand.class.getPackage().getSpecificationVersion());
         }
-
-        if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
+        else if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
         {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("log", options);
