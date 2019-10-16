@@ -22,50 +22,54 @@ import java.io.File;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Path;
 
-import org.agrona.concurrent.AtomicBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-import org.reaktivity.command.log.internal.spy.OneToOneRingBufferSpy;
-import org.reaktivity.command.log.internal.spy.RingBufferSpy;
-import org.reaktivity.command.log.internal.spy.RingBufferSpy.SpyPosition;
+import org.reaktivity.reaktor.internal.buffer.DefaultBufferPool;
 
-public final class StreamsLayout extends Layout
+public final class BufferPoolLayout extends Layout
 {
-    private final RingBufferSpy streamsBuffer;
+    private final DefaultBufferPool bufferPool;
 
-    private StreamsLayout(
-        RingBufferSpy streamsBuffer)
+    private BufferPoolLayout(
+        DefaultBufferPool bufferPool)
     {
-        this.streamsBuffer = streamsBuffer;
+        this.bufferPool = bufferPool;
     }
 
-    public RingBufferSpy streamsBuffer()
+    public DefaultBufferPool bufferPool()
     {
-        return streamsBuffer;
+        return bufferPool;
     }
 
     @Override
     public void close()
     {
-        unmap(streamsBuffer.buffer().byteBuffer());
+        unmap(bufferPool.poolBuffer().byteBuffer());
     }
 
-    public static final class Builder extends Layout.Builder<StreamsLayout>
+    public static final class Builder extends Layout.Builder<BufferPoolLayout>
     {
+        private int slotCount;
+        private int slotCapacity;
         private Path path;
         private boolean readonly;
-        private SpyPosition position;
+
+        public Builder slotCount(
+            int slotCount)
+        {
+            this.slotCount = slotCount;
+            return this;
+        }
+
+        public Builder slotCapacity(
+            int slotCapacity)
+        {
+            this.slotCapacity = slotCapacity;
+            return this;
+        }
 
         public Builder path(
             Path path)
         {
             this.path = path;
-            return this;
-        }
-
-        public Builder spyAt(
-            SpyPosition position)
-        {
-            this.position = position;
             return this;
         }
 
@@ -77,24 +81,21 @@ public final class StreamsLayout extends Layout
         }
 
         @Override
-        public StreamsLayout build()
+        public BufferPoolLayout build()
         {
             final File layoutFile = path.toFile();
 
             assert readonly;
 
-            final MappedByteBuffer mappedStreams = mapExistingFile(layoutFile, "streams");
+            MappedByteBuffer metadata = mapExistingFile(layoutFile, "metadata");
+            slotCount = metadata.getInt(metadata.capacity() - Integer.BYTES);
+            unmap(metadata);
 
-            final AtomicBuffer atomicStreams = new UnsafeBuffer(mappedStreams);
+            slotCapacity = (metadata.capacity() - Integer.BYTES) / slotCount - Long.BYTES;
 
-            final OneToOneRingBufferSpy spy = new OneToOneRingBufferSpy(atomicStreams);
+            final MappedByteBuffer mapped = mapExistingFile(layoutFile, "bufferPool");
 
-            if (position != null)
-            {
-                spy.spyAt(position);
-            }
-
-            return new StreamsLayout(spy);
+            return new BufferPoolLayout(new DefaultBufferPool(slotCapacity, slotCount, mapped));
         }
     }
 }
