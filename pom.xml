@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.46</version>
+  <version>0.47</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -170,6 +170,12 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>org.reaktivity.command.log.internal.LogCommand</mainClass>
+                  <manifestEntries>
+                    <Name>org/reaktivity/command/log/internal/</Name>
+                    <Specification-Title>${project.name}</Specification-Title>
+                    <Specification-Version>${project.version}</Specification-Version>
+                    <Specification-Vendor>reaktivity.org</Specification-Vendor>
+                  </manifestEntries>
                 </transformer>
               </transformers>
             </configuration>
