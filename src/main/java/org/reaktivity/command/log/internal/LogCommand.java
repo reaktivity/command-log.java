@@ -56,15 +56,22 @@ public final class LogCommand
         final CommandLine cmdline = parser.parse(options, args);
         final Logger out = System.out::printf;
 
-        boolean version = cmdline.hasOption("version");
-        if (version)
+        final boolean hasVersion = cmdline.hasOption("version");
+        final boolean hasDirectory = cmdline.hasOption("directory");
+        final boolean hasHelp = cmdline.hasOption("help");
+
+        if (hasVersion)
         {
             out.printf("version: %s\n", LogCommand.class.getPackage().getSpecificationVersion());
         }
-        else if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
+
+        if (hasHelp || !hasDirectory)
         {
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("log", options);
+            if (hasHelp || !hasVersion)
+            {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.printHelp("log", options);
+            }
         }
         else
         {
