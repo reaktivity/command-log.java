@@ -34,16 +34,18 @@ import org.reaktivity.reaktor.ReaktorConfiguration;
 
 public final class LogCommand
 {
-    public static void main(String[] args) throws Exception
+    public static void main(
+        String[] args) throws Exception
     {
-        CommandLineParser parser = new DefaultParser();
+        final CommandLineParser parser = new DefaultParser();
 
         Options options = new Options();
         options.addOption(builder("h").longOpt("help").desc("print this message").build());
+        options.addOption(builder().longOpt("version").build());
         options.addOption(builder("t").hasArg()
                                       .required(false)
                                       .longOpt("type")
-                                      .desc("streams* | streams-nowait | counters | queues | routes")
+                                      .desc("streams* | streams-[nowait|zero|head|tail] | counters | queues | routes")
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
@@ -51,7 +53,14 @@ public final class LogCommand
         options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
         options.addOption(builder("a").hasArg().longOpt("affinity").desc("affinity mask").build());
 
-        CommandLine cmdline = parser.parse(options, args);
+        final CommandLine cmdline = parser.parse(options, args);
+        final Logger out = System.out::printf;
+
+        boolean version = cmdline.hasOption("version");
+        if (version)
+        {
+            out.printf("version: %s\n", LogCommand.class.getPackage().getSpecificationVersion());
+        }
 
         if (cmdline.hasOption("help") || !cmdline.hasOption("directory"))
         {
@@ -71,7 +80,6 @@ public final class LogCommand
             properties.setProperty(REAKTOR_DIRECTORY.name(), directory);
 
             final ReaktorConfiguration config = new ReaktorConfiguration(new Configuration(), properties);
-            final Logger out = System.out::printf;
 
             Runnable command = null;
 
