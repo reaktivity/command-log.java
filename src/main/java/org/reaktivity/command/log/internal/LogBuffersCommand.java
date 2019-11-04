@@ -99,7 +99,7 @@ public final class LogBuffersCommand implements Runnable
             if (streamId != 0L)
             {
                 final long slotOffset = slot * slotCapacity;
-                out.printf("[0x%016x] [0x%08x]\n", streamId, slotOffset);
+                out.printf("%s [0x%016x] [0x%08x]\n", name, streamId, slotOffset);
             }
         }
     }
