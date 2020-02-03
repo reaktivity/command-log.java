@@ -708,8 +708,8 @@ public final class LoggableStream implements AutoCloseable
         final KafkaOffsetFW partition = fetch.partition();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[fetch] %d %s %d %d",
-                           fetch.timestamp(), asString(key.value()),
+                   format("[fetch] (%d) %d %s %d %d",
+                           fetch.deferred(), fetch.timestamp(), asString(key.value()),
                            partition.partitionId(), partition.offset$()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
