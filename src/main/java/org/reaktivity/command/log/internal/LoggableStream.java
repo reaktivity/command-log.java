@@ -822,10 +822,10 @@ public final class LoggableStream implements AutoCloseable
         long timestamp,
         KafkaMergedFlushExFW merged)
     {
-        final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
+        final ArrayFW<KafkaOffsetFW> progress = merged.progress();
 
         out.printf(verboseFormat, index, offset, timestamp, "[merged]");
-        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+        progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
                    format("%d: %d", p.partitionId(), p.offset$())));
     }
 
