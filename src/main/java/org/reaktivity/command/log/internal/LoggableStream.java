@@ -52,13 +52,17 @@ import org.reaktivity.command.log.internal.types.stream.HttpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.HttpDataExFW;
 import org.reaktivity.command.log.internal.types.stream.HttpEndExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaBeginExFW;
+import org.reaktivity.command.log.internal.types.stream.KafkaBootstrapBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaDataExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaDescribeBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaDescribeDataExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaFetchBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaFetchDataExFW;
+import org.reaktivity.command.log.internal.types.stream.KafkaFetchFlushExFW;
+import org.reaktivity.command.log.internal.types.stream.KafkaFlushExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaMergedBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaMergedDataExFW;
+import org.reaktivity.command.log.internal.types.stream.KafkaMergedFlushExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaMetaBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaMetaDataExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaProduceBeginExFW;
@@ -92,6 +96,7 @@ public final class LoggableStream implements AutoCloseable
     private final HttpEndExFW httpEndExRO = new HttpEndExFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
+    private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
 
     private final int index;
     private final LabelManager labels;
@@ -105,8 +110,9 @@ public final class LoggableStream implements AutoCloseable
     private final LongPredicate nextTimestamp;
 
     private final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers;
-    private final Int2ObjectHashMap<Consumer<EndFW>> endHandlers;
     private final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers;
+    private final Int2ObjectHashMap<Consumer<EndFW>> endHandlers;
+    private final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers;
 
     LoggableStream(
         int index,
@@ -140,6 +146,9 @@ public final class LoggableStream implements AutoCloseable
 
         this.endHandlers = new Int2ObjectHashMap<>();
         this.endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
+
+        this.flushHandlers = new Int2ObjectHashMap<>();
+        this.flushHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaFlushEx);
     }
 
     int process()
@@ -458,6 +467,18 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
                 format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
+        if (verbose)
+        {
+            final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
+            if (extension != null)
+            {
+                final Consumer<FlushFW> flushHandler = flushHandlers.get(extension.typeId());
+                if (flushHandler != null)
+                {
+                    flushHandler.accept(flush);
+                }
+            }
+        }
     }
 
     private InetSocketAddress toInetSocketAddress(
@@ -581,14 +602,17 @@ public final class LoggableStream implements AutoCloseable
         final KafkaBeginExFW kafkaBeginEx = kafkaBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         switch (kafkaBeginEx.kind())
         {
+        case KafkaBeginExFW.KIND_BOOTSTRAP:
+            onKafkaBootstrapBeginEx(offset, timestamp, kafkaBeginEx.bootstrap());
+            break;
+        case KafkaBeginExFW.KIND_MERGED:
+            onKafkaMergedBeginEx(offset, timestamp, kafkaBeginEx.merged());
+            break;
         case KafkaBeginExFW.KIND_DESCRIBE:
             onKafkaDescribeBeginEx(offset, timestamp, kafkaBeginEx.describe());
             break;
         case KafkaBeginExFW.KIND_FETCH:
             onKafkaFetchBeginEx(offset, timestamp, kafkaBeginEx.fetch());
-            break;
-        case KafkaBeginExFW.KIND_MERGED:
-            onKafkaMergedBeginEx(offset, timestamp, kafkaBeginEx.merged());
             break;
         case KafkaBeginExFW.KIND_META:
             onKafkaMetaBeginEx(offset, timestamp, kafkaBeginEx.meta());
@@ -597,6 +621,29 @@ public final class LoggableStream implements AutoCloseable
             onKafkaProduceBeginEx(offset, timestamp, kafkaBeginEx.produce());
             break;
         }
+    }
+
+    private void onKafkaBootstrapBeginEx(
+        int offset,
+        long timestamp,
+        KafkaBootstrapBeginExFW bootstrap)
+    {
+        final String16FW topic = bootstrap.topic();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("[bootstrap] %s", topic.asString()));
+    }
+
+    private void onKafkaMergedBeginEx(
+        int offset,
+        long timestamp,
+        KafkaMergedBeginExFW merged)
+    {
+        final String16FW topic = merged.topic();
+        final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s", topic.asString()));
+        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+                                         format("%d: %d", p.partitionId(), p.offset$())));
     }
 
     private void onKafkaDescribeBeginEx(
@@ -620,19 +667,6 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp, format("[fetch] %s", topic.asString()));
         out.printf(verboseFormat, index, offset, timestamp, format("%d: %d", partition.partitionId(), partition.offset$()));
-    }
-
-    private void onKafkaMergedBeginEx(
-        int offset,
-        long timestamp,
-        KafkaMergedBeginExFW merged)
-    {
-        final String16FW topic = merged.topic();
-        final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
-
-        out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s", topic.asString()));
-        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%d: %d", p.partitionId(), p.offset$())));
     }
 
     private void onKafkaMetaBeginEx(
@@ -762,6 +796,48 @@ public final class LoggableStream implements AutoCloseable
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
         out.printf(verboseFormat, index, offset, timestamp,
                    format("%d: %d", progress.partitionId(), progress.offset$()));
+    }
+
+    private void onKafkaFlushEx(
+        final FlushFW flush)
+    {
+        final int offset = flush.offset() - HEADER_LENGTH;
+        final long timestamp = flush.timestamp();
+        final OctetsFW extension = flush.extension();
+
+        final KafkaFlushExFW kafkaFlushEx = kafkaFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        switch (kafkaFlushEx.kind())
+        {
+        case KafkaFlushExFW.KIND_MERGED:
+            onKafkaMergedFlushEx(offset, timestamp, kafkaFlushEx.merged());
+            break;
+        case KafkaFlushExFW.KIND_FETCH:
+            onKafkaFetchFlushEx(offset, timestamp, kafkaFlushEx.fetch());
+            break;
+        }
+    }
+
+    private void onKafkaMergedFlushEx(
+        int offset,
+        long timestamp,
+        KafkaMergedFlushExFW merged)
+    {
+        final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
+
+        out.printf(verboseFormat, index, offset, timestamp, "[merged]");
+        partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+                   format("%d: %d", p.partitionId(), p.offset$())));
+    }
+
+    private void onKafkaFetchFlushEx(
+        int offset,
+        long timestamp,
+        KafkaFetchFlushExFW fetch)
+    {
+        final KafkaOffsetFW partition = fetch.partition();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+                format("[fetch] %d %d", partition.partitionId(), partition.offset$()));
     }
 
     private static String asString(
