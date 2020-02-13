@@ -31,7 +31,9 @@ import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.ArrayFW;
+import org.reaktivity.command.log.internal.types.KafkaConditionFW;
 import org.reaktivity.command.log.internal.types.KafkaConfigFW;
+import org.reaktivity.command.log.internal.types.KafkaFilterFW;
 import org.reaktivity.command.log.internal.types.KafkaHeaderFW;
 import org.reaktivity.command.log.internal.types.KafkaKeyFW;
 import org.reaktivity.command.log.internal.types.KafkaOffsetFW;
@@ -664,9 +666,31 @@ public final class LoggableStream implements AutoCloseable
     {
         final String16FW topic = fetch.topic();
         final KafkaOffsetFW partition = fetch.partition();
+        final ArrayFW<KafkaFilterFW> filters = fetch.filters();
 
         out.printf(verboseFormat, index, offset, timestamp, format("[fetch] %s", topic.asString()));
         out.printf(verboseFormat, index, offset, timestamp, format("%d: %d", partition.partitionId(), partition.offset$()));
+        filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
+    }
+
+    private String asString(
+        KafkaConditionFW condition)
+    {
+        String formatted = "unknown";
+        switch (condition.kind())
+        {
+        case KafkaConditionFW.KIND_KEY:
+            final KafkaKeyFW key = condition.key();
+            formatted = String.format("key[%d]", key.length());
+            break;
+        case KafkaConditionFW.KIND_HEADER:
+            final KafkaHeaderFW header = condition.header();
+            final OctetsFW name = header.name();
+            final String formattedName = name.buffer().getStringWithoutLengthUtf8(name.offset(), name.sizeof());
+            formatted = String.format("header[%s=[%d]]", formattedName, header.valueLen());
+            break;
+        }
+        return formatted;
     }
 
     private void onKafkaMetaBeginEx(
