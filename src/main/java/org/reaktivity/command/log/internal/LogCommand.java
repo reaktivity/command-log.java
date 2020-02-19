@@ -93,8 +93,6 @@ public final class LogCommand
             String type = cmdline.getOptionValue("type", "streams");
             final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
             final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0xffff_ffff_ffff_ffffL)));
-            final String[] frameTypes = cmdline.getOptionValues("frameTypes");
-            final String[] extensionTypes = cmdline.getOptionValues("extensionTypes");
 
             Properties properties = new Properties();
             properties.setProperty(REAKTOR_DIRECTORY.name(), directory);
@@ -111,6 +109,9 @@ public final class LogCommand
                 final SpyPosition position = continuous && option != null ?
                         SpyPosition.valueOf(option.toUpperCase()) :
                         SpyPosition.ZERO;
+
+                final String[] frameTypes = cmdline.getOptionValues("frameTypes");
+                final String[] extensionTypes = cmdline.getOptionValues("extensionTypes");
 
                 final Predicate<String> hasExtensionType =
                     extensionTypes == null ? t -> true : Arrays.asList(extensionTypes)::contains;
