@@ -334,7 +334,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-            format("ABORT [0x%016x]", authorization));
+                format("ABORT [0x%016x]", authorization));
     }
 
     private void onReset(
@@ -558,6 +558,6 @@ public final class LoggableStream implements AutoCloseable
         final HttpEndExFW httpEndEx = httpEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpEndEx.trailers()
                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                     format("%s: %s", h.name().asString(), h.value().asString())));
+                                         format("%s: %s", h.name().asString(), h.value().asString())));
     }
 }
