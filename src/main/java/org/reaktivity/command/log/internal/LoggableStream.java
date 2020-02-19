@@ -340,7 +340,6 @@ public final class LoggableStream implements AutoCloseable
     private void onReset(
         final ResetFW reset)
     {
-
         final int offset = reset.offset() - HEADER_LENGTH;
         final long timestamp = reset.timestamp();
         final long routeId = reset.routeId();
