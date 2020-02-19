@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.function.Consumer;
 import java.util.function.LongPredicate;
+import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
 import org.agrona.LangUtil;
@@ -48,6 +49,7 @@ import org.reaktivity.command.log.internal.types.stream.SignalFW;
 import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.TlsBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
+import org.reaktivity.nukleus.function.MessageConsumer;
 
 public final class LoggableStream implements AutoCloseable
 {
@@ -79,9 +81,9 @@ public final class LoggableStream implements AutoCloseable
     private final StreamsLayout layout;
     private final RingBufferSpy streamsBuffer;
     private final Logger out;
-    private final boolean verbose;
     private final LongPredicate nextTimestamp;
 
+    private final Int2ObjectHashMap<MessageConsumer> frameHandlers;
     private final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers;
     private final Int2ObjectHashMap<Consumer<EndFW>> endHandlers;
     private final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers;
@@ -91,7 +93,8 @@ public final class LoggableStream implements AutoCloseable
         LabelManager labels,
         StreamsLayout layout,
         Logger logger,
-        boolean verbose,
+        Predicate<String> frameTypes,
+        Predicate<String> extensionTypes,
         LongPredicate nextTimestamp)
     {
         this.index = index;
@@ -103,19 +106,78 @@ public final class LoggableStream implements AutoCloseable
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
         this.out = logger;
-        this.verbose = verbose;
         this.nextTimestamp = nextTimestamp;
 
-        this.beginHandlers = new Int2ObjectHashMap<>();
-        this.beginHandlers.put(labels.lookupLabelId("tcp"), this::onTcpBeginEx);
-        this.beginHandlers.put(labels.lookupLabelId("tls"), this::onTlsBeginEx);
-        this.beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
+        final Int2ObjectHashMap<MessageConsumer> frameHandlers = new Int2ObjectHashMap<>();
+        final Int2ObjectHashMap<Consumer<BeginFW>> beginHandlers = new Int2ObjectHashMap<>();
+        final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers = new Int2ObjectHashMap<>();
+        final Int2ObjectHashMap<Consumer<EndFW>> endHandlers = new Int2ObjectHashMap<>();
 
-        this.dataHandlers = new Int2ObjectHashMap<>();
-        this.dataHandlers.put(labels.lookupLabelId("http"), this::onHttpDataEx);
+        setFrameHandler(frameTypes, frameHandlers);
 
-        this.endHandlers = new Int2ObjectHashMap<>();
-        this.endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
+        if (extensionTypes.test("tcp"))
+        {
+            beginHandlers.put(labels.lookupLabelId("tcp"), this::onTcpBeginEx);
+        }
+
+        if (extensionTypes.test("tls"))
+        {
+            beginHandlers.put(labels.lookupLabelId("tls"), this::onTlsBeginEx);
+        }
+
+        if (extensionTypes.test("http"))
+        {
+            beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
+            dataHandlers.put(labels.lookupLabelId("http"), this::onHttpDataEx);
+            endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
+        }
+
+        this.frameHandlers = frameHandlers;
+        this.beginHandlers = beginHandlers;
+        this.dataHandlers = dataHandlers;
+        this.endHandlers = endHandlers;
+    }
+
+    private void setFrameHandler(
+        Predicate<String> frameTypes,
+        Int2ObjectHashMap<MessageConsumer> frameHandlers)
+    {
+        if (frameTypes.test("BEGIN"))
+        {
+            frameHandlers.put(BeginFW.TYPE_ID, this::onBegin);
+        }
+        if (frameTypes.test("DATA"))
+        {
+            frameHandlers.put(DataFW.TYPE_ID, this::onData);
+        }
+        if (frameTypes.test("END"))
+        {
+            frameHandlers.put(EndFW.TYPE_ID, this::onEnd);
+        }
+        if (frameTypes.test("ABORT"))
+        {
+            frameHandlers.put(AbortFW.TYPE_ID, this::onAbort);
+        }
+        if (frameTypes.test("WINDOW"))
+        {
+            frameHandlers.put(WindowFW.TYPE_ID, this::onWindow);
+        }
+        if (frameTypes.test("RESET"))
+        {
+            frameHandlers.put(ResetFW.TYPE_ID, this::onReset);
+        }
+        if (frameTypes.test("CHALLENGE"))
+        {
+            frameHandlers.put(ChallengeFW.TYPE_ID, this::onChallenge);
+        }
+        if (frameTypes.test("SIGNAL"))
+        {
+            frameHandlers.put(SignalFW.TYPE_ID, this::onSignal);
+        }
+        if (frameTypes.test("FLUSH"))
+        {
+            frameHandlers.put(FlushFW.TYPE_ID, this::onFlush);
+        }
     }
 
     int process()
@@ -149,52 +211,23 @@ public final class LoggableStream implements AutoCloseable
             return false;
         }
 
-        switch (msgTypeId)
+        MessageConsumer handler = frameHandlers.get(msgTypeId);
+        if (handler != null)
         {
-        case BeginFW.TYPE_ID:
-            final BeginFW begin = beginRO.wrap(buffer, index, index + length);
-            onBegin(begin);
-            break;
-        case DataFW.TYPE_ID:
-            final DataFW data = dataRO.wrap(buffer, index, index + length);
-            onData(data);
-            break;
-        case EndFW.TYPE_ID:
-            final EndFW end = endRO.wrap(buffer, index, index + length);
-            onEnd(end);
-            break;
-        case AbortFW.TYPE_ID:
-            final AbortFW abort = abortRO.wrap(buffer, index, index + length);
-            onAbort(abort);
-            break;
-        case ResetFW.TYPE_ID:
-            final ResetFW reset = resetRO.wrap(buffer, index, index + length);
-            onReset(reset);
-            break;
-        case WindowFW.TYPE_ID:
-            final WindowFW window = windowRO.wrap(buffer, index, index + length);
-            onWindow(window);
-            break;
-        case SignalFW.TYPE_ID:
-            final SignalFW signal = signalRO.wrap(buffer, index, index + length);
-            onSignal(signal);
-            break;
-        case ChallengeFW.TYPE_ID:
-            final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
-            onChallenge(challenge);
-            break;
-        case FlushFW.TYPE_ID:
-            final FlushFW flush = flushRO.wrap(buffer, index, index + length);
-            onFlush(flush);
-            break;
+            handler.accept(msgTypeId, buffer, index, length);
         }
 
         return true;
     }
 
     private void onBegin(
-        final BeginFW begin)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final BeginFW begin = beginRO.wrap(buffer, index, index + length);
+
         final int offset = begin.offset() - HEADER_LENGTH;
         final long timestamp = begin.timestamp();
         final long routeId = begin.routeId();
@@ -212,32 +245,35 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                   format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
+            format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
 
-        if (verbose)
+
+        final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
+        if (extension != null)
         {
-            final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
-            if (extension != null)
+            final Consumer<BeginFW> beginHandler = beginHandlers.get(extension.typeId());
+            if (beginHandler != null)
             {
-                final Consumer<BeginFW> beginHandler = beginHandlers.get(extension.typeId());
-                if (beginHandler != null)
-                {
-                    beginHandler.accept(begin);
-                }
+                beginHandler.accept(begin);
             }
         }
     }
 
     private void onData(
-        final DataFW data)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final DataFW data = dataRO.wrap(buffer, index, index + length);
+
         final int offset = data.offset() - HEADER_LENGTH;
         final long timestamp = data.timestamp();
         final long routeId = data.routeId();
         final long streamId = data.streamId();
         final long traceId = data.traceId();
         final long budgetId = data.budgetId();
-        final int length = data.length();
+        final int dataLength = data.length();
         final int reserved = data.reserved();
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
@@ -251,24 +287,27 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                      format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]", budgetId, length, reserved, flags, authorization));
-        if (verbose)
+            format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]", budgetId, dataLength, reserved, flags, authorization));
+
+        final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
+        if (extension != null)
         {
-            final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
-            if (extension != null)
+            final Consumer<DataFW> dataHandler = dataHandlers.get(extension.typeId());
+            if (dataHandler != null)
             {
-                final Consumer<DataFW> dataHandler = dataHandlers.get(extension.typeId());
-                if (dataHandler != null)
-                {
-                    dataHandler.accept(data);
-                }
+                dataHandler.accept(data);
             }
         }
     }
 
     private void onEnd(
-        final EndFW end)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final EndFW end = endRO.wrap(buffer, index, index + length);
+
         final int offset = end.offset() - HEADER_LENGTH;
         final long timestamp = end.timestamp();
         final long routeId = end.routeId();
@@ -285,25 +324,27 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("END [0x%016x]", authorization));
+            format("END [0x%016x]", authorization));
 
-        if (verbose)
+        final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
+        if (extension != null)
         {
-            final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
-            if (extension != null)
+            final Consumer<EndFW> endHandler = endHandlers.get(extension.typeId());
+            if (endHandler != null)
             {
-                final Consumer<EndFW> endHandler = endHandlers.get(extension.typeId());
-                if (endHandler != null)
-                {
-                    endHandler.accept(end);
-                }
+                endHandler.accept(end);
             }
         }
     }
 
     private void onAbort(
-        final AbortFW abort)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final AbortFW abort = abortRO.wrap(buffer, index, index + length);
+
         final int offset = abort.offset() - HEADER_LENGTH;
         final long timestamp = abort.timestamp();
         final long routeId = abort.routeId();
@@ -320,12 +361,17 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("ABORT [0x%016x]", authorization));
+            format("ABORT [0x%016x]", authorization));
     }
 
     private void onReset(
-        final ResetFW reset)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final ResetFW reset = resetRO.wrap(buffer, index, index + length);
+
         final int offset = reset.offset() - HEADER_LENGTH;
         final long timestamp = reset.timestamp();
         final long routeId = reset.routeId();
@@ -340,13 +386,17 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                "RESET");
+        out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId, "RESET");
     }
 
     private void onWindow(
-        final WindowFW window)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final WindowFW window = windowRO.wrap(buffer, index, index + length);
+
         final int offset = window.offset() - HEADER_LENGTH;
         final long timestamp = window.timestamp();
         final long routeId = window.routeId();
@@ -365,12 +415,17 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
+            format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
     }
 
     private void onSignal(
-        final SignalFW signal)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+
         final int offset = signal.offset() - HEADER_LENGTH;
         final long timestamp = signal.timestamp();
         final long routeId = signal.routeId();
@@ -388,12 +443,17 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("SIGNAL [%d] [0x%016x]", signalId, authorization));
+            format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
     private void onChallenge(
-        final ChallengeFW challenge)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final ChallengeFW challenge = challengeRO.wrap(buffer, index, index + length);
+
         final int offset = challenge.offset() - HEADER_LENGTH;
         final long timestamp = challenge.timestamp();
         final long routeId = challenge.routeId();
@@ -410,12 +470,17 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("CHALLENGE [0x%016x]", authorization));
+            format("CHALLENGE [0x%016x]", authorization));
     }
 
     private void onFlush(
-        FlushFW flush)
+        int msgTypeId,
+        DirectBuffer buffer,
+        int index,
+        int length)
     {
+        final FlushFW flush = flushRO.wrap(buffer, index, index + length);
+
         final int offset = flush.offset() - HEADER_LENGTH;
         final long timestamp = flush.timestamp();
         final long routeId = flush.routeId();
@@ -433,7 +498,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
+            format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
     }
 
     private InetSocketAddress toInetSocketAddress(
@@ -518,7 +583,7 @@ public final class LoggableStream implements AutoCloseable
         final HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpBeginEx.headers()
                    .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                           format("%s: %s", h.name().asString(), h.value().asString())));
+                       format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onHttpDataEx(
@@ -530,8 +595,8 @@ public final class LoggableStream implements AutoCloseable
 
         final HttpDataExFW httpDataEx = httpDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpDataEx.promise()
-                   .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                       format("%s: %s", h.name().asString(), h.value().asString())));
+                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+                      format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onHttpEndEx(
@@ -544,6 +609,6 @@ public final class LoggableStream implements AutoCloseable
         final HttpEndExFW httpEndEx = httpEndExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpEndEx.trailers()
                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%s: %s", h.name().asString(), h.value().asString())));
+                     format("%s: %s", h.name().asString(), h.value().asString())));
     }
 }

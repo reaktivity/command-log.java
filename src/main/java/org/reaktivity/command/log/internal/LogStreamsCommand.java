@@ -21,6 +21,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -43,6 +46,8 @@ public final class LogStreamsCommand implements Runnable
     private static final int MAX_SPINS = 20;
 
     private final Path directory;
+    private String[] frameTypes;
+    private String[] extensionTypes;
     private final LabelManager labels;
     private final boolean verbose;
     private final boolean continuous;
@@ -55,12 +60,16 @@ public final class LogStreamsCommand implements Runnable
     LogStreamsCommand(
         ReaktorConfiguration config,
         Logger out,
+        String[] frameTypes,
+        String[] extensionTypes,
         boolean verbose,
         boolean continuous,
         long affinity,
         SpyPosition position)
     {
         this.directory = config.directory();
+        this.frameTypes = frameTypes;
+        this.extensionTypes = extensionTypes;
         this.labels = new LabelManager(directory);
         this.verbose = verbose;
         this.continuous = continuous;
@@ -96,7 +105,37 @@ public final class LogStreamsCommand implements Runnable
                 .spyAt(position)
                 .build();
 
-        return new LoggableStream(index, labels, layout, out, verbose, this::nextTimestamp);
+        List<String> extensionTypeList = (extensionTypes == null || extensionTypes.length == 0) ?
+            null  : Arrays.asList(extensionTypes);
+
+        Predicate<String> extensionTypePredicated = s ->
+        {
+            boolean hasExtension = false;
+            if (verbose)
+            {
+                hasExtension = true;
+            }
+            else if (extensionTypeList != null)
+            {
+                hasExtension = extensionTypeList.contains(s);
+            }
+            return hasExtension;
+        };
+
+        List<String> frameTypeList = (frameTypes == null || frameTypes.length == 0) ?
+            null : Arrays.asList(frameTypes);
+        Predicate <String> frameTypePredicate = s ->
+        {
+            boolean hasFrame = true;
+            if (frameTypeList != null)
+            {
+                hasFrame = frameTypeList.contains(s);
+            }
+
+            return hasFrame;
+        };
+
+        return new LoggableStream(index, labels, layout, out, frameTypePredicate, extensionTypePredicated, this::nextTimestamp);
     }
 
     private void onDiscovered(

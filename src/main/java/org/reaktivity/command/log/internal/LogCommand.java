@@ -47,9 +47,19 @@ public final class LogCommand
                                       .longOpt("type")
                                       .desc("streams* | streams-[nowait|zero|head|tail] | counters | queues | routes")
                                       .build());
+        options.addOption(builder("f").hasArgs()
+                                      .required(false)
+                                      .longOpt("frameTypes")
+                                      .desc("all* | BEGIN DATA END ABORT WINDOW RESET CHALLENGE SIGNAL FLUSH")
+                                      .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
-        options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
+        options.addOption(builder("e").hasArgs()
+                                      .required(false)
+                                      .longOpt("extensionTypes")
+                                      .desc("none* | all tcp tls http")
+                                      .build());
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
+        options.addOption(builder("v").hasArg().longOpt("verbose").desc("verbose").build());
         options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
         options.addOption(builder("a").hasArg().longOpt("affinity").desc("affinity mask").build());
 
@@ -81,6 +91,8 @@ public final class LogCommand
             String type = cmdline.getOptionValue("type", "streams");
             final int interval = Integer.parseInt(cmdline.getOptionValue("interval", "0"));
             final long affinity = Long.parseLong(cmdline.getOptionValue("affinity", Long.toString(0xffff_ffff_ffff_ffffL)));
+            final String[] frameTypes = cmdline.getOptionValues("frameTypes");
+            final String[] extensionTypes = cmdline.getOptionValues("extensionTypes");
 
             Properties properties = new Properties();
             properties.setProperty(REAKTOR_DIRECTORY.name(), directory);
@@ -97,7 +109,7 @@ public final class LogCommand
                 final SpyPosition position = continuous && option != null ?
                         SpyPosition.valueOf(option.toUpperCase()) :
                         SpyPosition.ZERO;
-                command = new LogStreamsCommand(config, out, verbose, continuous, affinity, position);
+                command = new LogStreamsCommand(config, out, frameTypes, extensionTypes, verbose, continuous, affinity, position);
             }
             else if ("buffers".equals(type))
             {
