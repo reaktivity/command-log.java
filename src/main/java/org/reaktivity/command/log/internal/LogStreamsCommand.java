@@ -21,7 +21,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,8 +58,8 @@ public final class LogStreamsCommand implements Runnable
     LogStreamsCommand(
         ReaktorConfiguration config,
         Logger out,
-        String[] frameTypes,
-        String[] extensionTypes,
+        Predicate<String> hasFrameType,
+        Predicate<String> hasExtensionType,
         boolean verbose,
         boolean continuous,
         long affinity,
@@ -73,8 +72,8 @@ public final class LogStreamsCommand implements Runnable
         this.affinity = affinity;
         this.position = position;
         this.out = out;
-        this.hasExtensionType = extensionTypes == null ? t -> true : Arrays.asList(extensionTypes)::contains;
-        this.hasFrameType = frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
+        this.hasFrameType = hasFrameType;
+        this.hasExtensionType = hasExtensionType;
     }
 
     private boolean isStreamsFile(

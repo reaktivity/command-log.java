@@ -18,8 +18,10 @@ package org.reaktivity.command.log.internal;
 import static org.apache.commons.cli.Option.builder;
 import static org.reaktivity.reaktor.ReaktorConfiguration.REAKTOR_DIRECTORY;
 
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,7 +55,7 @@ public final class LogCommand
                                       .desc("log specific frame types only, e.g BEGIN")
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
-        options.addOption(builder("v").hasArg().longOpt("verbose").desc("verbose").build());
+        options.addOption(builder("v").longOpt("verbose").desc("verbose").build());
         options.addOption(builder("e").hasArgs()
                                       .required(false)
                                       .longOpt("extensionTypes")
@@ -109,7 +111,14 @@ public final class LogCommand
                 final SpyPosition position = continuous && option != null ?
                         SpyPosition.valueOf(option.toUpperCase()) :
                         SpyPosition.ZERO;
-                command = new LogStreamsCommand(config, out, frameTypes, extensionTypes, verbose, continuous, affinity, position);
+
+                final Predicate<String> hasExtensionType =
+                    extensionTypes == null ? t -> true : Arrays.asList(extensionTypes)::contains;
+                final Predicate<String> hasFrameTypes =
+                    frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
+
+                command = new LogStreamsCommand(config, out, hasFrameTypes, hasExtensionType, verbose,
+                    continuous, affinity, position);
             }
             else if ("buffers".equals(type))
             {
