@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,8 +45,8 @@ public final class LogStreamsCommand implements Runnable
     private static final int MAX_SPINS = 20;
 
     private final Path directory;
-    private String[] frameTypes;
-    private String[] extensionTypes;
+    private final Predicate<String> hasFrameType;
+    private final Predicate<String> hasExtensionType;
     private final LabelManager labels;
     private final boolean verbose;
     private final boolean continuous;
@@ -68,14 +67,14 @@ public final class LogStreamsCommand implements Runnable
         SpyPosition position)
     {
         this.directory = config.directory();
-        this.frameTypes = frameTypes;
-        this.extensionTypes = extensionTypes;
         this.labels = new LabelManager(directory);
         this.verbose = verbose;
         this.continuous = continuous;
         this.affinity = affinity;
         this.position = position;
         this.out = out;
+        this.hasExtensionType = extensionTypes == null ? t -> true : Arrays.asList(extensionTypes)::contains;
+        this.hasFrameType = frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
     }
 
     private boolean isStreamsFile(
@@ -105,37 +104,7 @@ public final class LogStreamsCommand implements Runnable
                 .spyAt(position)
                 .build();
 
-        List<String> extensionTypeList = (extensionTypes == null || extensionTypes.length == 0) ?
-            null  : Arrays.asList(extensionTypes);
-
-        Predicate<String> extensionTypePredicated = s ->
-        {
-            boolean hasExtension = false;
-            if (verbose)
-            {
-                hasExtension = true;
-            }
-            else if (extensionTypeList != null)
-            {
-                hasExtension = extensionTypeList.contains(s);
-            }
-            return hasExtension;
-        };
-
-        List<String> frameTypeList = (frameTypes == null || frameTypes.length == 0) ?
-            null : Arrays.asList(frameTypes);
-        Predicate <String> frameTypePredicate = s ->
-        {
-            boolean hasFrame = true;
-            if (frameTypeList != null)
-            {
-                hasFrame = frameTypeList.contains(s);
-            }
-
-            return hasFrame;
-        };
-
-        return new LoggableStream(index, labels, layout, out, frameTypePredicate, extensionTypePredicated, this::nextTimestamp);
+        return new LoggableStream(index, labels, layout, out, hasFrameType, hasExtensionType, this::nextTimestamp);
     }
 
     private void onDiscovered(
