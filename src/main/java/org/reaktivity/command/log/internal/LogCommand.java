@@ -50,7 +50,7 @@ public final class LogCommand
         options.addOption(builder("f").hasArgs()
                                       .required(false)
                                       .longOpt("frameTypes")
-                                      .desc("log specific frame types only e.f BEGIN")
+                                      .desc("log specific frame types only, e.f BEGIN")
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").hasArg().longOpt("verbose").desc("verbose").build());
