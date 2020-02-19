@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.52</version>
+  <version>0.53</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -109,7 +109,7 @@
         <configuration>
           <header>COPYRIGHT</header>
           <properties>
-            <copyrightYears>2016-2019</copyrightYears>
+            <copyrightYears>2016-2020</copyrightYears>
           </properties>
           <includes>
             <include>src/**</include>
@@ -149,7 +149,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>8.23</version>
+            <version>8.29</version>
           </dependency>
         </dependencies>
       </plugin>

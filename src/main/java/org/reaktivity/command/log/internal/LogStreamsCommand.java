@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2019 The Reaktivity Project
+ * Copyright 2016-2020 The Reaktivity Project
  *
  * The Reaktivity Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -43,6 +44,8 @@ public final class LogStreamsCommand implements Runnable
     private static final int MAX_SPINS = 20;
 
     private final Path directory;
+    private final Predicate<String> hasFrameType;
+    private final Predicate<String> hasExtensionType;
     private final LabelManager labels;
     private final boolean verbose;
     private final boolean continuous;
@@ -55,6 +58,8 @@ public final class LogStreamsCommand implements Runnable
     LogStreamsCommand(
         ReaktorConfiguration config,
         Logger out,
+        Predicate<String> hasFrameType,
+        Predicate<String> hasExtensionType,
         boolean verbose,
         boolean continuous,
         long affinity,
@@ -67,6 +72,8 @@ public final class LogStreamsCommand implements Runnable
         this.affinity = affinity;
         this.position = position;
         this.out = out;
+        this.hasFrameType = hasFrameType;
+        this.hasExtensionType = hasExtensionType;
     }
 
     private boolean isStreamsFile(
@@ -96,7 +103,7 @@ public final class LogStreamsCommand implements Runnable
                 .spyAt(position)
                 .build();
 
-        return new LoggableStream(index, labels, layout, out, verbose, this::nextTimestamp);
+        return new LoggableStream(index, labels, layout, out, hasFrameType, hasExtensionType, this::nextTimestamp);
     }
 
     private void onDiscovered(

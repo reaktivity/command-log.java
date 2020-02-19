@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2019 The Reaktivity Project
+ * Copyright 2016-2020 The Reaktivity Project
  *
  * The Reaktivity Project licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -18,8 +18,10 @@ package org.reaktivity.command.log.internal;
 import static org.apache.commons.cli.Option.builder;
 import static org.reaktivity.reaktor.ReaktorConfiguration.REAKTOR_DIRECTORY;
 
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,8 +49,18 @@ public final class LogCommand
                                       .longOpt("type")
                                       .desc("streams* | streams-[nowait|zero|head|tail] | counters | queues | routes")
                                       .build());
+        options.addOption(builder("f").hasArgs()
+                                      .required(false)
+                                      .longOpt("frameTypes")
+                                      .desc("log specific frame types only, e.g BEGIN")
+                                      .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
-        options.addOption(builder("v").longOpt("verbose").desc("verbose output").build());
+        options.addOption(builder("v").longOpt("verbose").desc("verbose").build());
+        options.addOption(builder("e").hasArgs()
+                                      .required(false)
+                                      .longOpt("extensionTypes")
+                                      .desc("log specific extension types only, e.g. tcp")
+                                      .build());
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
         options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
         options.addOption(builder("a").hasArg().longOpt("affinity").desc("affinity mask").build());
@@ -97,7 +109,17 @@ public final class LogCommand
                 final SpyPosition position = continuous && option != null ?
                         SpyPosition.valueOf(option.toUpperCase()) :
                         SpyPosition.ZERO;
-                command = new LogStreamsCommand(config, out, verbose, continuous, affinity, position);
+
+                final String[] frameTypes = cmdline.getOptionValues("frameTypes");
+                final String[] extensionTypes = cmdline.getOptionValues("extensionTypes");
+
+                final Predicate<String> hasExtensionType =
+                    extensionTypes == null ? t -> true : Arrays.asList(extensionTypes)::contains;
+                final Predicate<String> hasFrameTypes =
+                    frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
+
+                command = new LogStreamsCommand(config, out, hasFrameTypes, hasExtensionType, verbose,
+                    continuous, affinity, position);
             }
             else if ("buffers".equals(type))
             {
