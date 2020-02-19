@@ -379,7 +379,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-            format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
+                format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
     }
 
     private void onSignal(
@@ -402,7 +402,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-            format("SIGNAL [%d] [0x%016x]", signalId, authorization));
+                format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
     private void onChallenge(
@@ -424,7 +424,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-            format("CHALLENGE [0x%016x]", authorization));
+                format("CHALLENGE [0x%016x]", authorization));
     }
 
     private void onFlush(
@@ -447,7 +447,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-            format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
+                format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
     }
 
     private InetSocketAddress toInetSocketAddress(
@@ -532,7 +532,7 @@ public final class LoggableStream implements AutoCloseable
         final HttpBeginExFW httpBeginEx = httpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpBeginEx.headers()
                    .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                       format("%s: %s", h.name().asString(), h.value().asString())));
+                                           format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onHttpDataEx(
@@ -544,8 +544,8 @@ public final class LoggableStream implements AutoCloseable
 
         final HttpDataExFW httpDataEx = httpDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         httpDataEx.promise()
-                  .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
-                      format("%s: %s", h.name().asString(), h.value().asString())));
+                   .forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
+                       format("%s: %s", h.name().asString(), h.value().asString())));
     }
 
     private void onHttpEndEx(
