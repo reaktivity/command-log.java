@@ -233,7 +233,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
+                   format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
 
 
         final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
