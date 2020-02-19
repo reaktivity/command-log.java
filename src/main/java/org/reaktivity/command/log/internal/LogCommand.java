@@ -56,7 +56,7 @@ public final class LogCommand
         options.addOption(builder("e").hasArgs()
                                       .required(false)
                                       .longOpt("extensionTypes")
-                                      .desc("none* | all tcp tls http")
+                                      .desc("none* | tcp tls http")
                                       .build());
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
         options.addOption(builder("v").hasArg().longOpt("verbose").desc("verbose").build());
