@@ -50,14 +50,14 @@ public final class LogCommand
         options.addOption(builder("f").hasArgs()
                                       .required(false)
                                       .longOpt("frameTypes")
-                                      .desc("BEGIN DATA END ABORT WINDOW RESET CHALLENGE SIGNAL FLUSH")
+                                      .desc("log specific frame types only e.f BEGIN")
                                       .build());
         options.addOption(builder("d").longOpt("directory").hasArg().desc("configuration directory").build());
         options.addOption(builder("v").hasArg().longOpt("verbose").desc("verbose").build());
         options.addOption(builder("e").hasArgs()
                                       .required(false)
                                       .longOpt("extensionTypes")
-                                      .desc("tcp tls http")
+                                      .desc("log specific extension types only, e.g. tcp")
                                       .build());
         options.addOption(builder("i").hasArg().longOpt("interval").desc("run command continuously at interval").build());
         options.addOption(builder("s").longOpt("separator").desc("include thousands separator in integer values").build());
