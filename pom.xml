@@ -44,10 +44,11 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <reaktor.version>0.115</reaktor.version>
-    <nukleus.plugin.version>0.42</nukleus.plugin.version>
+    <nukleus.plugin.version>0.45</nukleus.plugin.version>
+    <nukleus.kafka.spec.version>0.122</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>0.88</nukleus.http.spec.version>
     <nukleus.tls.spec.version>0.47</nukleus.tls.spec.version>
-    <nukleus.tcp.spec.version>0.58</nukleus.tcp.spec.version>
+    <nukleus.tcp.spec.version>0.60</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
@@ -74,6 +75,12 @@
     </dependency>
     <dependency>
       <groupId>org.reaktivity</groupId>
+      <artifactId>nukleus-kafka.spec</artifactId>
+      <version>${nukleus.kafka.spec.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.reaktivity</groupId>
       <artifactId>reaktor</artifactId>
       <version>${reaktor.version}</version>
     </dependency>
@@ -91,7 +98,7 @@
         <artifactId>nukleus-maven-plugin</artifactId>
         <version>${nukleus.plugin.version}</version>
         <configuration>
-          <scopeNames>core http::stream tcp::stream tls::stream tls::control</scopeNames>
+          <scopeNames>core kafka::stream http::stream tcp::stream tls::stream tls::control</scopeNames>
           <packageName>org.reaktivity.command.log.internal.types</packageName>
         </configuration>
         <executions>
