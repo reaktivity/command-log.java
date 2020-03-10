@@ -669,9 +669,10 @@ public final class LoggableStream implements AutoCloseable
         long timestamp,
         KafkaDescribeBeginExFW describe)
     {
+        final String16FW topic = describe.topic();
         final ArrayFW<String16FW> configs = describe.configs();
 
-        out.printf(verboseFormat, index, offset, timestamp, "[describe]");
+        out.printf(verboseFormat, index, offset, timestamp, format("[describe] %s", topic.asString()));
         configs.forEach(c -> out.printf(verboseFormat, index, offset, timestamp, c.asString()));
     }
 
