@@ -485,7 +485,7 @@ public final class LoggableStream implements AutoCloseable
         final String sourceName = labels.lookupLabel(sourceId);
         final String targetName = labels.lookupLabel(targetId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
                 format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
 
         final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
