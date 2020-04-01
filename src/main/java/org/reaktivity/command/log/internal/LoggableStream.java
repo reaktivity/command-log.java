@@ -127,15 +127,15 @@ public final class LoggableStream implements AutoCloseable
         LabelManager labels,
         StreamsLayout layout,
         Logger logger,
-        Predicate<String> hasExtensionType,
         Predicate<String> hasFrameType,
+        Predicate<String> hasExtensionType,
         LongPredicate nextTimestamp)
     {
         this.index = index;
         this.labels = labels;
-        this.streamFormat = "[%02d/%08x] [0x%016x] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] %s\n";
-        this.throttleFormat = "[%02d/%08x] [0x%016x] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] %s\n";
-        this.verboseFormat = "[%02d/%08x] [0x%016x] %s\n";
+        this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] %s\n";
+        this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] %s\n";
+        this.verboseFormat = "[%02d/%08x] [%d] %s\n";
 
         this.layout = layout;
         this.streamsBuffer = layout.streamsBuffer();
@@ -148,61 +148,61 @@ public final class LoggableStream implements AutoCloseable
         final Int2ObjectHashMap<Consumer<EndFW>> endHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers = new Int2ObjectHashMap<>();
 
-        if (hasExtensionType.test("BEGIN"))
+        if (hasFrameType.test("BEGIN"))
         {
             frameHandlers.put(BeginFW.TYPE_ID, (t, b, i, l) -> onBegin(beginRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("DATA"))
+        if (hasFrameType.test("DATA"))
         {
             frameHandlers.put(DataFW.TYPE_ID, (t, b, i, l) -> onData(dataRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("END"))
+        if (hasFrameType.test("END"))
         {
             frameHandlers.put(EndFW.TYPE_ID, (t, b, i, l) -> onEnd(endRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("ABORT"))
+        if (hasFrameType.test("ABORT"))
         {
             frameHandlers.put(AbortFW.TYPE_ID, (t, b, i, l) -> onAbort(abortRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("WINDOW"))
+        if (hasFrameType.test("WINDOW"))
         {
             frameHandlers.put(WindowFW.TYPE_ID, (t, b, i, l) -> onWindow(windowRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("RESET"))
+        if (hasFrameType.test("RESET"))
         {
             frameHandlers.put(ResetFW.TYPE_ID, (t, b, i, l) -> onReset(resetRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("CHALLENGE"))
+        if (hasFrameType.test("CHALLENGE"))
         {
             frameHandlers.put(ChallengeFW.TYPE_ID, (t, b, i, l) -> onChallenge(challengeRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("SIGNAL"))
+        if (hasFrameType.test("SIGNAL"))
         {
             frameHandlers.put(SignalFW.TYPE_ID, (t, b, i, l) -> onSignal(signalRO.wrap(b, i, i + l)));
         }
-        if (hasExtensionType.test("FLUSH"))
+        if (hasFrameType.test("FLUSH"))
         {
             frameHandlers.put(FlushFW.TYPE_ID, (t, b, i, l) -> onFlush(flushRO.wrap(b, i, i + l)));
         }
 
-        if (hasFrameType.test("tcp"))
+        if (hasExtensionType.test("tcp"))
         {
             beginHandlers.put(labels.lookupLabelId("tcp"), this::onTcpBeginEx);
         }
 
-        if (hasFrameType.test("tls"))
+        if (hasExtensionType.test("tls"))
         {
             beginHandlers.put(labels.lookupLabelId("tls"), this::onTlsBeginEx);
         }
 
-        if (hasFrameType.test("http"))
+        if (hasExtensionType.test("http"))
         {
             beginHandlers.put(labels.lookupLabelId("http"), this::onHttpBeginEx);
             dataHandlers.put(labels.lookupLabelId("http"), this::onHttpDataEx);
             endHandlers.put(labels.lookupLabelId("http"), this::onHttpEndEx);
         }
 
-        if (hasFrameType.test("kafka"))
+        if (hasExtensionType.test("kafka"))
         {
             beginHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaBeginEx);
             dataHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaDataEx);
