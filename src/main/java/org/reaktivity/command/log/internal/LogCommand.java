@@ -114,7 +114,7 @@ public final class LogCommand
                 final String[] extensionTypes = cmdline.getOptionValues("extensionTypes");
 
                 final Predicate<String> hasExtensionType =
-                    extensionTypes == null ? t -> true : Arrays.asList(extensionTypes)::contains;
+                    extensionTypes == null ? t -> false : Arrays.asList(extensionTypes)::contains;
                 final Predicate<String> hasFrameTypes =
                     frameTypes == null ? t -> true : Arrays.asList(frameTypes)::contains;
 
