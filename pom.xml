@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.58</version>
+  <version>0.59</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -49,6 +49,7 @@
     <nukleus.http.spec.version>0.91</nukleus.http.spec.version>
     <nukleus.tls.spec.version>0.49</nukleus.tls.spec.version>
     <nukleus.tcp.spec.version>0.61</nukleus.tcp.spec.version>
+    <nukleus.amqp.spec.version>0.7</nukleus.amqp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
@@ -81,6 +82,12 @@
     </dependency>
     <dependency>
       <groupId>org.reaktivity</groupId>
+      <artifactId>nukleus-amqp.spec</artifactId>
+      <version>${nukleus.amqp.spec.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.reaktivity</groupId>
       <artifactId>reaktor</artifactId>
       <version>${reaktor.version}</version>
     </dependency>
@@ -98,7 +105,7 @@
         <artifactId>nukleus-maven-plugin</artifactId>
         <version>${nukleus.plugin.version}</version>
         <configuration>
-          <scopeNames>core kafka::stream http::stream tcp::stream tls::stream tls::control</scopeNames>
+          <scopeNames>core kafka::stream http::stream tcp::stream tls::stream tls::control amqp::stream</scopeNames>
           <packageName>org.reaktivity.command.log.internal.types</packageName>
         </configuration>
         <executions>
