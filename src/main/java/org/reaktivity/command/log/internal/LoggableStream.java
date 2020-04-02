@@ -44,6 +44,8 @@ import org.reaktivity.command.log.internal.types.String16FW;
 import org.reaktivity.command.log.internal.types.StringFW;
 import org.reaktivity.command.log.internal.types.TcpAddressFW;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
+import org.reaktivity.command.log.internal.types.stream.AmqpBeginExFW;
+import org.reaktivity.command.log.internal.types.stream.AmqpDataExFW;
 import org.reaktivity.command.log.internal.types.stream.BeginFW;
 import org.reaktivity.command.log.internal.types.stream.ChallengeFW;
 import org.reaktivity.command.log.internal.types.stream.DataFW;
@@ -101,6 +103,8 @@ public final class LoggableStream implements AutoCloseable
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
+    private final AmqpBeginExFW amqpBeginExRO = new AmqpBeginExFW();
+    private final AmqpDataExFW amqpDataExRO = new AmqpDataExFW();
 
     private final int index;
     private final LabelManager labels;
@@ -203,6 +207,12 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaBeginEx);
             dataHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaDataEx);
             flushHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaFlushEx);
+        }
+
+        if (hasFrameType.test("amqp"))
+        {
+            beginHandlers.put(labels.lookupLabelId("amqp"), this::onAmqpBeginEx);
+            dataHandlers.put(labels.lookupLabelId("amqp"), this::onAmqpDataEx);
         }
 
         this.frameHandlers = frameHandlers;
@@ -880,6 +890,51 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp,
                 format("[fetch] %d %d", partition.partitionId(), partition.partitionOffset()));
+    }
+
+    private void onAmqpBeginEx(
+        final BeginFW begin)
+    {
+        final int offset = begin.offset() - HEADER_LENGTH;
+        final long timestamp = begin.timestamp();
+        final OctetsFW extension = begin.extension();
+
+        final AmqpBeginExFW amqpBeginEx = amqpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final String containerId = amqpBeginEx.containerId().asString();
+        final int channel = amqpBeginEx.channel();
+        final String address = amqpBeginEx.address().asString();
+        final String role = amqpBeginEx.role().toString();
+        final String senderSettleMode = amqpBeginEx.senderSettleMode().toString();
+        final String receiverSettleMode = amqpBeginEx.receiverSettleMode().toString();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("containerId: %s", containerId));
+        out.printf(verboseFormat, index, offset, timestamp, format("channel: %d", channel));
+        out.printf(verboseFormat, index, offset, timestamp, format("address: %s", address));
+        out.printf(verboseFormat, index, offset, timestamp, format("role: %s", role));
+        out.printf(verboseFormat, index, offset, timestamp, format("senderSettleMode: %s", senderSettleMode));
+        out.printf(verboseFormat, index, offset, timestamp, format("receiverSettleMode: %s", receiverSettleMode));
+    }
+
+    private void onAmqpDataEx(
+        final DataFW data)
+    {
+        final int offset = data.offset() - HEADER_LENGTH;
+        final long timestamp = data.timestamp();
+        final OctetsFW extension = data.extension();
+
+        final AmqpDataExFW amqpDataEx = amqpDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final long deliveryId = amqpDataEx.deliveryId();
+        final long messageFormat = amqpDataEx.messageFormat();
+        final int flags = amqpDataEx.flags();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("deliveryId: %d", deliveryId));
+        out.printf(verboseFormat, index, offset, timestamp, format("deliveryTag: %s", amqpDataEx.deliveryTag()));
+        out.printf(verboseFormat, index, offset, timestamp, format("messageFormat: %d", messageFormat));
+        out.printf(verboseFormat, index, offset, timestamp, format("flags: %d", flags));
+        amqpDataEx.annotations().forEach(a -> out.printf(verboseFormat, index, offset, timestamp,
+            format("annotation: [key:%s] [value:%s]", a.key(), a.value())));
+        amqpDataEx.properties().forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+            format("property: %s", p)));
     }
 
     private static String asString(
