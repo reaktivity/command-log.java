@@ -49,7 +49,7 @@
     <nukleus.http.spec.version>0.91</nukleus.http.spec.version>
     <nukleus.tls.spec.version>0.49</nukleus.tls.spec.version>
     <nukleus.tcp.spec.version>0.61</nukleus.tcp.spec.version>
-    <nukleus.amqp.spec.version>0.7</nukleus.amqp.spec.version>
+    <nukleus.amqp.spec.version>develop-SNAPSHOT</nukleus.amqp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
