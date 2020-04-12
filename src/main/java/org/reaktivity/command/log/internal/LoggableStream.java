@@ -32,6 +32,7 @@ import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.ArrayFW;
+import org.reaktivity.command.log.internal.types.KafkaCapabilities;
 import org.reaktivity.command.log.internal.types.KafkaConditionFW;
 import org.reaktivity.command.log.internal.types.KafkaConfigFW;
 import org.reaktivity.command.log.internal.types.KafkaFilterFW;
@@ -72,6 +73,7 @@ import org.reaktivity.command.log.internal.types.stream.KafkaMetaBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaMetaDataExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaProduceBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaProduceDataExFW;
+import org.reaktivity.command.log.internal.types.stream.KafkaResetExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.SignalFW;
 import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
@@ -103,6 +105,7 @@ public final class LoggableStream implements AutoCloseable
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
+    private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
     private final AmqpBeginExFW amqpBeginExRO = new AmqpBeginExFW();
     private final AmqpDataExFW amqpDataExRO = new AmqpDataExFW();
 
@@ -121,6 +124,7 @@ public final class LoggableStream implements AutoCloseable
     private final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers;
     private final Int2ObjectHashMap<Consumer<EndFW>> endHandlers;
     private final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers;
+    private final Int2ObjectHashMap<Consumer<ResetFW>> resetHandlers;
 
     LoggableStream(
         int index,
@@ -147,6 +151,7 @@ public final class LoggableStream implements AutoCloseable
         final Int2ObjectHashMap<Consumer<DataFW>> dataHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<EndFW>> endHandlers = new Int2ObjectHashMap<>();
         final Int2ObjectHashMap<Consumer<FlushFW>> flushHandlers = new Int2ObjectHashMap<>();
+        final Int2ObjectHashMap<Consumer<ResetFW>> resetHandlers = new Int2ObjectHashMap<>();
 
         if (hasFrameType.test("BEGIN"))
         {
@@ -207,6 +212,7 @@ public final class LoggableStream implements AutoCloseable
             beginHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaBeginEx);
             dataHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaDataEx);
             flushHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaFlushEx);
+            resetHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaResetEx);
         }
 
         if (hasFrameType.test("amqp"))
@@ -220,6 +226,7 @@ public final class LoggableStream implements AutoCloseable
         this.dataHandlers = dataHandlers;
         this.endHandlers = endHandlers;
         this.flushHandlers = flushHandlers;
+        this.resetHandlers = resetHandlers;
     }
 
     int process()
@@ -405,6 +412,16 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
                 "RESET");
+
+        final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
+        if (extension != null)
+        {
+            final Consumer<ResetFW> resetHandler = resetHandlers.get(extension.typeId());
+            if (resetHandler != null)
+            {
+                resetHandler.accept(reset);
+            }
+        }
     }
 
     private void onWindow(
@@ -668,8 +685,9 @@ public final class LoggableStream implements AutoCloseable
     {
         final String16FW topic = merged.topic();
         final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
+        final KafkaCapabilities capabilities = merged.capabilities().get();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s", topic.asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s %s", topic.asString(), capabilities));
         partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
                                          format("%d: %d", p.partitionId(), p.partitionOffset())));
     }
@@ -737,11 +755,11 @@ public final class LoggableStream implements AutoCloseable
         KafkaProduceBeginExFW produce)
     {
         final String16FW topic = produce.topic();
-        final long producerId = produce.producerId();
+        final long partitionId = produce.partitionId();
         final StringFW transaction = produce.transaction();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[produce] %s %d %s", topic.asString(), producerId, transaction.asString()));
+                   format("[produce] %s %d %s", topic.asString(), partitionId, transaction.asString()));
     }
 
     private void onKafkaDataEx(
@@ -812,8 +830,8 @@ public final class LoggableStream implements AutoCloseable
         final ArrayFW<KafkaOffsetFW> progress = merged.progress();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[merged] %d %s %d %d",
-                           merged.timestamp(), asString(key.value()),
+                   format("[merged] (%d) %d %s %d %d",
+                           merged.deferred(), merged.timestamp(), asString(key.value()),
                            partition.partitionId(), partition.partitionOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
@@ -840,14 +858,11 @@ public final class LoggableStream implements AutoCloseable
     {
         final KafkaKeyFW key = produce.key();
         final ArrayFW<KafkaHeaderFW> headers = produce.headers();
-        final KafkaOffsetFW progress = produce.progress();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[produce] %s", asString(key.value())));
+                   format("[produce] (%d) %s", produce.deferred(), asString(key.value())));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
-        out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d: %d", progress.partitionId(), progress.partitionOffset()));
     }
 
     private void onKafkaFlushEx(
@@ -890,6 +905,20 @@ public final class LoggableStream implements AutoCloseable
 
         out.printf(verboseFormat, index, offset, timestamp,
                 format("[fetch] %d %d", partition.partitionId(), partition.partitionOffset()));
+    }
+
+    private void onKafkaResetEx(
+        final ResetFW reset)
+    {
+        final int offset = reset.offset() - HEADER_LENGTH;
+        final long timestamp = reset.timestamp();
+        final OctetsFW extension = reset.extension();
+
+        final KafkaResetExFW kafkaResetEx = kafkaResetExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+
+        final int error = kafkaResetEx.error();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("error %d", error));
     }
 
     private void onAmqpBeginEx(
