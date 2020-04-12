@@ -31,6 +31,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.types.Array32FW;
 import org.reaktivity.command.log.internal.types.ArrayFW;
 import org.reaktivity.command.log.internal.types.KafkaCapabilities;
 import org.reaktivity.command.log.internal.types.KafkaConditionFW;
@@ -40,6 +41,9 @@ import org.reaktivity.command.log.internal.types.KafkaHeaderFW;
 import org.reaktivity.command.log.internal.types.KafkaKeyFW;
 import org.reaktivity.command.log.internal.types.KafkaOffsetFW;
 import org.reaktivity.command.log.internal.types.KafkaPartitionFW;
+import org.reaktivity.command.log.internal.types.MqttCapabilities;
+import org.reaktivity.command.log.internal.types.MqttCapabilitiesFW;
+import org.reaktivity.command.log.internal.types.MqttUserPropertyFW;
 import org.reaktivity.command.log.internal.types.OctetsFW;
 import org.reaktivity.command.log.internal.types.String16FW;
 import org.reaktivity.command.log.internal.types.StringFW;
@@ -74,6 +78,9 @@ import org.reaktivity.command.log.internal.types.stream.KafkaMetaDataExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaProduceBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaProduceDataExFW;
 import org.reaktivity.command.log.internal.types.stream.KafkaResetExFW;
+import org.reaktivity.command.log.internal.types.stream.MqttBeginExFW;
+import org.reaktivity.command.log.internal.types.stream.MqttDataExFW;
+import org.reaktivity.command.log.internal.types.stream.MqttFlushExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.SignalFW;
 import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
@@ -106,6 +113,9 @@ public final class LoggableStream implements AutoCloseable
     private final KafkaDataExFW kafkaDataExRO = new KafkaDataExFW();
     private final KafkaFlushExFW kafkaFlushExRO = new KafkaFlushExFW();
     private final KafkaResetExFW kafkaResetExRO = new KafkaResetExFW();
+    private final MqttBeginExFW mqttBeginExRO = new MqttBeginExFW();
+    private final MqttDataExFW mqttDataExRO = new MqttDataExFW();
+    private final MqttFlushExFW mqttFlushExRO = new MqttFlushExFW();
     private final AmqpBeginExFW amqpBeginExRO = new AmqpBeginExFW();
     private final AmqpDataExFW amqpDataExRO = new AmqpDataExFW();
 
@@ -215,7 +225,14 @@ public final class LoggableStream implements AutoCloseable
             resetHandlers.put(labels.lookupLabelId("kafka"), this::onKafkaResetEx);
         }
 
-        if (hasFrameType.test("amqp"))
+        if (hasExtensionType.test("mqtt"))
+        {
+            beginHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttBeginEx);
+            dataHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttDataEx);
+            flushHandlers.put(labels.lookupLabelId("mqtt"), this::onMqttFlushEx);
+        }
+
+        if (hasExtensionType.test("amqp"))
         {
             beginHandlers.put(labels.lookupLabelId("amqp"), this::onAmqpBeginEx);
             dataHandlers.put(labels.lookupLabelId("amqp"), this::onAmqpDataEx);
@@ -919,6 +936,67 @@ public final class LoggableStream implements AutoCloseable
         final int error = kafkaResetEx.error();
 
         out.printf(verboseFormat, index, offset, timestamp, format("error %d", error));
+    }
+
+    private void onMqttBeginEx(
+        final BeginFW begin)
+    {
+        final int offset = begin.offset() - HEADER_LENGTH;
+        final long timestamp = begin.timestamp();
+        final OctetsFW extension = begin.extension();
+
+        final MqttBeginExFW mqttBeginEx = mqttBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final MqttCapabilities capabilities = mqttBeginEx.capabilities().get();
+        final String clientId = mqttBeginEx.clientId().asString();
+        final String topic = mqttBeginEx.topic().asString();
+        final int subscriptionId = mqttBeginEx.subscriptionId();
+        final Array32FW<MqttUserPropertyFW> properties = mqttBeginEx.properties();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("capabilities: %s", capabilities));
+        out.printf(verboseFormat, index, offset, timestamp, format("clientId: %s", clientId));
+        out.printf(verboseFormat, index, offset, timestamp, format("topic: %s", topic));
+        out.printf(verboseFormat, index, offset, timestamp, format("subscriptionId: %s", subscriptionId));
+        properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+                format("%d: %d", p.key().asString(), p.value().asString())));
+    }
+
+    private void onMqttDataEx(
+        final DataFW data)
+    {
+        final int offset = data.offset() - HEADER_LENGTH;
+        final long timestamp = data.timestamp();
+        final OctetsFW extension = data.extension();
+
+        final MqttDataExFW mqttDataEx = mqttDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final String contentType = mqttDataEx.contentType().asString();
+        final int correlationBytes = mqttDataEx.correlation().length();
+        final int deferred = mqttDataEx.deferred();
+        final int expiryInterval = mqttDataEx.expiryInterval();
+        final String responseTopic = mqttDataEx.responseTopic().asString();
+        final String topic = mqttDataEx.topic().asString();
+        final Array32FW<MqttUserPropertyFW> properties = mqttDataEx.properties();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("contentType: %s", contentType));
+        out.printf(verboseFormat, index, offset, timestamp, format("responseTopic: %s", responseTopic));
+        out.printf(verboseFormat, index, offset, timestamp, format("topic: %s", topic));
+        out.printf(verboseFormat, index, offset, timestamp, format("correlationBytes: %d bytes", correlationBytes));
+        out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", deferred));
+        out.printf(verboseFormat, index, offset, timestamp, format("expiryInterval: %d", expiryInterval));
+        properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
+                format("%d: %d", p.key().asString(), p.value().asString())));
+    }
+
+    private void onMqttFlushEx(
+        final FlushFW flush)
+    {
+        final int offset = flush.offset() - HEADER_LENGTH;
+        final long timestamp = flush.timestamp();
+        final OctetsFW extension = flush.extension();
+
+        final MqttFlushExFW mqttFlushEx = mqttFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final MqttCapabilitiesFW capabilities = mqttFlushEx.capabilities();
+
+        out.printf(verboseFormat, index, offset, timestamp, format("capabilities: %s", capabilities));
     }
 
     private void onAmqpBeginEx(
