@@ -32,6 +32,7 @@ import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.ArrayFW;
+import org.reaktivity.command.log.internal.types.KafkaCapabilities;
 import org.reaktivity.command.log.internal.types.KafkaConditionFW;
 import org.reaktivity.command.log.internal.types.KafkaConfigFW;
 import org.reaktivity.command.log.internal.types.KafkaFilterFW;
@@ -684,8 +685,9 @@ public final class LoggableStream implements AutoCloseable
     {
         final String16FW topic = merged.topic();
         final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
+        final KafkaCapabilities capabilities = merged.capabilities().get();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s", topic.asString()));
+        out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s %s", topic.asString(), capabilities));
         partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
                                          format("%d: %d", p.partitionId(), p.partitionOffset())));
     }
@@ -753,11 +755,11 @@ public final class LoggableStream implements AutoCloseable
         KafkaProduceBeginExFW produce)
     {
         final String16FW topic = produce.topic();
-        final long producerId = produce.producerId();
+        final long partitionId = produce.partitionId();
         final StringFW transaction = produce.transaction();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[produce] %s %d %s", topic.asString(), producerId, transaction.asString()));
+                   format("[produce] %s %d %s", topic.asString(), partitionId, transaction.asString()));
     }
 
     private void onKafkaDataEx(
@@ -828,8 +830,8 @@ public final class LoggableStream implements AutoCloseable
         final ArrayFW<KafkaOffsetFW> progress = merged.progress();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[merged] %d %s %d %d",
-                           merged.timestamp(), asString(key.value()),
+                   format("[merged] (%d) %d %s %d %d",
+                           merged.deferred(), merged.timestamp(), asString(key.value()),
                            partition.partitionId(), partition.partitionOffset()));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
@@ -856,14 +858,11 @@ public final class LoggableStream implements AutoCloseable
     {
         final KafkaKeyFW key = produce.key();
         final ArrayFW<KafkaHeaderFW> headers = produce.headers();
-        final KafkaOffsetFW progress = produce.progress();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[produce] %s", asString(key.value())));
+                   format("[produce] (%d) %s", produce.deferred(), asString(key.value())));
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
-        out.printf(verboseFormat, index, offset, timestamp,
-                   format("%d: %d", progress.partitionId(), progress.partitionOffset()));
     }
 
     private void onKafkaFlushEx(
