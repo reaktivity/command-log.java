@@ -1007,13 +1007,11 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = begin.extension();
 
         final AmqpBeginExFW amqpBeginEx = amqpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final int channel = amqpBeginEx.channel();
         final String address = amqpBeginEx.address().asString();
         final String capabilities = amqpBeginEx.capabilities().toString();
         final String senderSettleMode = amqpBeginEx.senderSettleMode().toString();
         final String receiverSettleMode = amqpBeginEx.receiverSettleMode().toString();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("channel: %d", channel));
         out.printf(verboseFormat, index, offset, timestamp, format("address: %s", address));
         out.printf(verboseFormat, index, offset, timestamp, format("capabilities: %s", capabilities));
         out.printf(verboseFormat, index, offset, timestamp, format("senderSettleMode: %s", senderSettleMode));
