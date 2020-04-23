@@ -983,7 +983,7 @@ public final class LoggableStream implements AutoCloseable
         out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", deferred));
         out.printf(verboseFormat, index, offset, timestamp, format("expiryInterval: %d", expiryInterval));
         properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                format("%d: %d", p.key().asString(), p.value().asString())));
+                format("%s: %s", p.key().asString(), p.value().asString())));
     }
 
     private void onMqttFlushEx(
