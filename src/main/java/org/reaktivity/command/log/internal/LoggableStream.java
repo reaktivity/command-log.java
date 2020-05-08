@@ -1040,59 +1040,59 @@ public final class LoggableStream implements AutoCloseable
             format("annotation: [key:%s] [value:%s]", a.key(), a.value())));
         if (properties.hasMessageId())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-messageId: %s", properties.messageId()));
+            out.printf(verboseFormat, index, offset, timestamp, format("messageId: %s", properties.messageId()));
         }
         if (properties.hasUserId())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-userId: %s", properties.userId()));
+            out.printf(verboseFormat, index, offset, timestamp, format("userId: %s", properties.userId()));
         }
         if (properties.hasTo())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-to: %s", properties.to().asString()));
+            out.printf(verboseFormat, index, offset, timestamp, format("to: %s", properties.to().asString()));
         }
         if (properties.hasSubject())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-subject: %s", properties.subject().asString()));
+            out.printf(verboseFormat, index, offset, timestamp, format("subject: %s", properties.subject().asString()));
         }
         if (properties.hasReplyTo())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-replyTo: %s", properties.replyTo().asString()));
+            out.printf(verboseFormat, index, offset, timestamp, format("replyTo: %s", properties.replyTo().asString()));
         }
         if (properties.hasCorrelationId())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-correlationId: %s",
+            out.printf(verboseFormat, index, offset, timestamp, format("correlationId: %s",
                 properties.correlationId()));
         }
         if (properties.hasContentType())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-contentType: %s",
+            out.printf(verboseFormat, index, offset, timestamp, format("contentType: %s",
                 properties.contentType().asString()));
         }
         if (properties.hasContentEncoding())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-contentEncoding: %s",
+            out.printf(verboseFormat, index, offset, timestamp, format("contentEncoding: %s",
                 properties.contentEncoding().asString()));
         }
         if (properties.hasAbsoluteExpiryTime())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-absoluteExpiryTime: %d",
+            out.printf(verboseFormat, index, offset, timestamp, format("absoluteExpiryTime: %d",
                 properties.absoluteExpiryTime()));
         }
         if (properties.hasCreationTime())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-creationTime: %d", properties.creationTime()));
+            out.printf(verboseFormat, index, offset, timestamp, format("creationTime: %d", properties.creationTime()));
         }
         if (properties.hasGroupId())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-groupId: %s", properties.groupId().asString()));
+            out.printf(verboseFormat, index, offset, timestamp, format("groupId: %s", properties.groupId().asString()));
         }
         if (properties.hasGroupSequence())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-groupSequence: %d", properties.groupSequence()));
+            out.printf(verboseFormat, index, offset, timestamp, format("groupSequence: %d", properties.groupSequence()));
         }
         if (properties.hasReplyToGroupId())
         {
-            out.printf(verboseFormat, index, offset, timestamp, format("property-replyToGroupId: %s",
+            out.printf(verboseFormat, index, offset, timestamp, format("replyToGroupId: %s",
                 properties.replyToGroupId().asString()));
         }
         amqpDataEx.applicationProperties().forEach(a -> out.printf(verboseFormat, index, offset, timestamp,
