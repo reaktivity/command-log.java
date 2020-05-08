@@ -31,6 +31,7 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.types.AmqpPropertiesFW;
 import org.reaktivity.command.log.internal.types.Array32FW;
 import org.reaktivity.command.log.internal.types.ArrayFW;
 import org.reaktivity.command.log.internal.types.KafkaCapabilities;
@@ -1029,6 +1030,7 @@ public final class LoggableStream implements AutoCloseable
         final long deliveryId = amqpDataEx.deliveryId();
         final long messageFormat = amqpDataEx.messageFormat();
         final int flags = amqpDataEx.flags();
+        final AmqpPropertiesFW properties = amqpDataEx.properties();
 
         out.printf(verboseFormat, index, offset, timestamp, format("deliveryId: %d", deliveryId));
         out.printf(verboseFormat, index, offset, timestamp, format("deliveryTag: %s", amqpDataEx.deliveryTag()));
@@ -1036,8 +1038,65 @@ public final class LoggableStream implements AutoCloseable
         out.printf(verboseFormat, index, offset, timestamp, format("flags: %d", flags));
         amqpDataEx.annotations().forEach(a -> out.printf(verboseFormat, index, offset, timestamp,
             format("annotation: [key:%s] [value:%s]", a.key(), a.value())));
-        amqpDataEx.properties().forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-            format("property: %s", p)));
+        if (properties.hasMessageId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("messageId: %s", properties.messageId()));
+        }
+        if (properties.hasUserId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("userId: %s", properties.userId()));
+        }
+        if (properties.hasTo())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("to: %s", properties.to().asString()));
+        }
+        if (properties.hasSubject())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("subject: %s", properties.subject().asString()));
+        }
+        if (properties.hasReplyTo())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("replyTo: %s", properties.replyTo().asString()));
+        }
+        if (properties.hasCorrelationId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("correlationId: %s",
+                properties.correlationId()));
+        }
+        if (properties.hasContentType())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("contentType: %s",
+                properties.contentType().asString()));
+        }
+        if (properties.hasContentEncoding())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("contentEncoding: %s",
+                properties.contentEncoding().asString()));
+        }
+        if (properties.hasAbsoluteExpiryTime())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("absoluteExpiryTime: %d",
+                properties.absoluteExpiryTime()));
+        }
+        if (properties.hasCreationTime())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("creationTime: %d", properties.creationTime()));
+        }
+        if (properties.hasGroupId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("groupId: %s", properties.groupId().asString()));
+        }
+        if (properties.hasGroupSequence())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("groupSequence: %d", properties.groupSequence()));
+        }
+        if (properties.hasReplyToGroupId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("replyToGroupId: %s",
+                properties.replyToGroupId().asString()));
+        }
+        amqpDataEx.applicationProperties().forEach(a -> out.printf(verboseFormat, index, offset, timestamp,
+            format("applicationProperty: [key:%s] [value:%s]", a.key(), a.value())));
     }
 
     private static String asString(
