@@ -125,6 +125,10 @@ public final class LogCommand
             {
                 command = new LogBuffersCommand(config, out, verbose);
             }
+            else if ("budgets".equals(type))
+            {
+                command = new LogBudgetsCommand(config, out, verbose, affinity);
+            }
             else if ("counters".equals(type))
             {
                 command = new LogCountersCommand(config, out, verbose, separator);
