@@ -854,7 +854,7 @@ public final class LoggableStream implements AutoCloseable
         headers.forEach(h -> out.printf(verboseFormat, index, offset, timestamp,
                                         format("%s: %s", asString(h.name()), asString(h.value()))));
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                                         format("%d: %d %d", p.partitionId(), p.partitionOffset(), partition.latestOffset())));
+                                         format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
     }
 
     private void onKafkaMetaDataEx(
