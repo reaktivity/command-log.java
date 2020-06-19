@@ -453,6 +453,7 @@ public final class LoggableStream implements AutoCloseable
         final int credit = window.credit();
         final int padding = window.padding();
         final long budgetId = window.budgetId();
+        final int minimum = window.minimum();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
 
         final int localId = (int)(routeId >> 48) & 0xffff;
@@ -463,7 +464,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
+                format("WINDOW [0x%016x] [%d] [%d] [%d]", budgetId, credit, padding, minimum));
     }
 
     private void onSignal(
