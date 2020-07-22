@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.66</version>
+  <version>0.67</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -47,7 +47,7 @@
     <nukleus.plugin.version>0.56</nukleus.plugin.version>
     <nukleus.amqp.spec.version>0.14</nukleus.amqp.spec.version>
     <nukleus.mqtt.spec.version>0.42</nukleus.mqtt.spec.version>
-    <nukleus.kafka.spec.version>0.141</nukleus.kafka.spec.version>
+    <nukleus.kafka.spec.version>0.142</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>0.95</nukleus.http.spec.version>
     <nukleus.tls.spec.version>0.52</nukleus.tls.spec.version>
     <nukleus.tcp.spec.version>0.62</nukleus.tcp.spec.version>
