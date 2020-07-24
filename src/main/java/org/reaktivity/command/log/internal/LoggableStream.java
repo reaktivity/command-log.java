@@ -34,6 +34,7 @@ import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.AmqpPropertiesFW;
 import org.reaktivity.command.log.internal.types.Array32FW;
 import org.reaktivity.command.log.internal.types.ArrayFW;
+import org.reaktivity.command.log.internal.types.KafkaAgeFW;
 import org.reaktivity.command.log.internal.types.KafkaCapabilities;
 import org.reaktivity.command.log.internal.types.KafkaConditionFW;
 import org.reaktivity.command.log.internal.types.KafkaConfigFW;
@@ -453,6 +454,7 @@ public final class LoggableStream implements AutoCloseable
         final int credit = window.credit();
         final int padding = window.padding();
         final long budgetId = window.budgetId();
+        final int minimum = window.minimum();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
 
         final int localId = (int)(routeId >> 48) & 0xffff;
@@ -463,7 +465,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
+                format("WINDOW [0x%016x] [%d] [%d] [%d]", budgetId, credit, padding, minimum));
     }
 
     private void onSignal(
@@ -752,6 +754,10 @@ public final class LoggableStream implements AutoCloseable
             final OctetsFW name = header.name();
             final String formattedName = name.buffer().getStringWithoutLengthUtf8(name.offset(), name.sizeof());
             formatted = String.format("header[%s=[%d]]", formattedName, header.valueLen());
+            break;
+        case KafkaConditionFW.KIND_AGE:
+            final KafkaAgeFW age = condition.age();
+            formatted = String.format("age[%s]", age.get());
             break;
         }
         return formatted;
