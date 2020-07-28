@@ -45,7 +45,7 @@
 
     <reaktor.version>0.136</reaktor.version>
     <nukleus.plugin.version>0.56</nukleus.plugin.version>
-    <nukleus.amqp.spec.version>0.14</nukleus.amqp.spec.version>
+    <nukleus.amqp.spec.version>0.15</nukleus.amqp.spec.version>
     <nukleus.mqtt.spec.version>0.42</nukleus.mqtt.spec.version>
     <nukleus.kafka.spec.version>0.142</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>0.95</nukleus.http.spec.version>
