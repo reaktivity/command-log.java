@@ -31,8 +31,10 @@ import org.agrona.collections.Int2ObjectHashMap;
 import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy;
+import org.reaktivity.command.log.internal.types.AmqpPropertiesFW;
 import org.reaktivity.command.log.internal.types.Array32FW;
 import org.reaktivity.command.log.internal.types.ArrayFW;
+import org.reaktivity.command.log.internal.types.KafkaAgeFW;
 import org.reaktivity.command.log.internal.types.KafkaCapabilities;
 import org.reaktivity.command.log.internal.types.KafkaConditionFW;
 import org.reaktivity.command.log.internal.types.KafkaConfigFW;
@@ -452,6 +454,7 @@ public final class LoggableStream implements AutoCloseable
         final int credit = window.credit();
         final int padding = window.padding();
         final long budgetId = window.budgetId();
+        final int minimum = window.minimum();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
 
         final int localId = (int)(routeId >> 48) & 0xffff;
@@ -462,7 +465,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("WINDOW [0x%016x] [%d] [%d]", budgetId, credit, padding));
+                format("WINDOW [0x%016x] [%d] [%d] [%d]", budgetId, credit, padding, minimum));
     }
 
     private void onSignal(
@@ -752,6 +755,10 @@ public final class LoggableStream implements AutoCloseable
             final String formattedName = name.buffer().getStringWithoutLengthUtf8(name.offset(), name.sizeof());
             formatted = String.format("header[%s=[%d]]", formattedName, header.valueLen());
             break;
+        case KafkaConditionFW.KIND_AGE:
+            final KafkaAgeFW age = condition.age();
+            formatted = String.format("age[%s]", age.get());
+            break;
         }
         return formatted;
     }
@@ -1026,18 +1033,79 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = data.extension();
 
         final AmqpDataExFW amqpDataEx = amqpDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final int deferred = amqpDataEx.deferred();
         final long deliveryId = amqpDataEx.deliveryId();
         final long messageFormat = amqpDataEx.messageFormat();
         final int flags = amqpDataEx.flags();
+        final AmqpPropertiesFW properties = amqpDataEx.properties();
 
+        out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", deferred));
         out.printf(verboseFormat, index, offset, timestamp, format("deliveryId: %d", deliveryId));
         out.printf(verboseFormat, index, offset, timestamp, format("deliveryTag: %s", amqpDataEx.deliveryTag()));
         out.printf(verboseFormat, index, offset, timestamp, format("messageFormat: %d", messageFormat));
         out.printf(verboseFormat, index, offset, timestamp, format("flags: %d", flags));
+
         amqpDataEx.annotations().forEach(a -> out.printf(verboseFormat, index, offset, timestamp,
             format("annotation: [key:%s] [value:%s]", a.key(), a.value())));
-        amqpDataEx.properties().forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-            format("property: %s", p)));
+        if (properties.hasMessageId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("messageId: %s", properties.messageId()));
+        }
+        if (properties.hasUserId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("userId: %s", properties.userId()));
+        }
+        if (properties.hasTo())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("to: %s", properties.to().asString()));
+        }
+        if (properties.hasSubject())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("subject: %s", properties.subject().asString()));
+        }
+        if (properties.hasReplyTo())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("replyTo: %s", properties.replyTo().asString()));
+        }
+        if (properties.hasCorrelationId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("correlationId: %s",
+                properties.correlationId()));
+        }
+        if (properties.hasContentType())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("contentType: %s",
+                properties.contentType().asString()));
+        }
+        if (properties.hasContentEncoding())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("contentEncoding: %s",
+                properties.contentEncoding().asString()));
+        }
+        if (properties.hasAbsoluteExpiryTime())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("absoluteExpiryTime: %d",
+                properties.absoluteExpiryTime()));
+        }
+        if (properties.hasCreationTime())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("creationTime: %d", properties.creationTime()));
+        }
+        if (properties.hasGroupId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("groupId: %s", properties.groupId().asString()));
+        }
+        if (properties.hasGroupSequence())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("groupSequence: %d", properties.groupSequence()));
+        }
+        if (properties.hasReplyToGroupId())
+        {
+            out.printf(verboseFormat, index, offset, timestamp, format("replyToGroupId: %s",
+                properties.replyToGroupId().asString()));
+        }
+        amqpDataEx.applicationProperties().forEach(a -> out.printf(verboseFormat, index, offset, timestamp,
+            format("applicationProperty: [key:%s] [value:%s]", a.key(), a.value())));
     }
 
     private static String asString(
