@@ -43,14 +43,14 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <reaktor.version>0.136</reaktor.version>
-    <nukleus.plugin.version>0.56</nukleus.plugin.version>
+    <reaktor.version>0.140</reaktor.version>
+    <nukleus.plugin.version>0.64</nukleus.plugin.version>
     <nukleus.amqp.spec.version>develop-SNAPSHOT</nukleus.amqp.spec.version>
-    <nukleus.mqtt.spec.version>0.42</nukleus.mqtt.spec.version>
-    <nukleus.kafka.spec.version>0.142</nukleus.kafka.spec.version>
-    <nukleus.http.spec.version>0.95</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>0.52</nukleus.tls.spec.version>
-    <nukleus.tcp.spec.version>0.62</nukleus.tcp.spec.version>
+    <nukleus.mqtt.spec.version>0.45</nukleus.mqtt.spec.version>
+    <nukleus.kafka.spec.version>0.146</nukleus.kafka.spec.version>
+    <nukleus.http.spec.version>0.97</nukleus.http.spec.version>
+    <nukleus.tls.spec.version>0.53</nukleus.tls.spec.version>
+    <nukleus.tcp.spec.version>0.63</nukleus.tcp.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
@@ -211,7 +211,7 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.2</version>
+        <version>0.8.5</version>
         <configuration>
           <rules>
             <rule>
