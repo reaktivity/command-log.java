@@ -914,10 +914,12 @@ public final class LoggableStream implements AutoCloseable
         KafkaMergedFlushExFW merged)
     {
         final ArrayFW<KafkaOffsetFW> progress = merged.progress();
+        final Array32FW<KafkaFilterFW> filters = merged.filters();
 
         out.printf(verboseFormat, index, offset, timestamp, "[merged]");
         progress.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
                    format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
+        filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
     private void onKafkaFetchFlushEx(
@@ -956,15 +958,17 @@ public final class LoggableStream implements AutoCloseable
         final MqttCapabilities capabilities = mqttBeginEx.capabilities().get();
         final String clientId = mqttBeginEx.clientId().asString();
         final String topic = mqttBeginEx.topic().asString();
+        final int flags = mqttBeginEx.flags();
         final int subscriptionId = mqttBeginEx.subscriptionId();
         final Array32FW<MqttUserPropertyFW> properties = mqttBeginEx.properties();
 
         out.printf(verboseFormat, index, offset, timestamp, format("capabilities: %s", capabilities));
         out.printf(verboseFormat, index, offset, timestamp, format("clientId: %s", clientId));
         out.printf(verboseFormat, index, offset, timestamp, format("topic: %s", topic));
+        out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));
         out.printf(verboseFormat, index, offset, timestamp, format("subscriptionId: %s", subscriptionId));
         properties.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
-                format("%d: %d", p.key().asString(), p.value().asString())));
+                format("%s: %s", p.key().asString(), p.value().asString())));
     }
 
     private void onMqttDataEx(
@@ -975,6 +979,7 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = data.extension();
 
         final MqttDataExFW mqttDataEx = mqttDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final int flags = mqttDataEx.flags();
         final String contentType = mqttDataEx.contentType().asString();
         final int correlationBytes = mqttDataEx.correlation().length();
         final int deferred = mqttDataEx.deferred();
@@ -983,6 +988,7 @@ public final class LoggableStream implements AutoCloseable
         final String topic = mqttDataEx.topic().asString();
         final Array32FW<MqttUserPropertyFW> properties = mqttDataEx.properties();
 
+        out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));
         out.printf(verboseFormat, index, offset, timestamp, format("contentType: %s", contentType));
         out.printf(verboseFormat, index, offset, timestamp, format("responseTopic: %s", responseTopic));
         out.printf(verboseFormat, index, offset, timestamp, format("topic: %s", topic));
@@ -1001,8 +1007,10 @@ public final class LoggableStream implements AutoCloseable
         final OctetsFW extension = flush.extension();
 
         final MqttFlushExFW mqttFlushEx = mqttFlushExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final int flags =  mqttFlushEx.flags();
         final MqttCapabilitiesFW capabilities = mqttFlushEx.capabilities();
 
+        out.printf(verboseFormat, index, offset, timestamp, format("flags: %s", flags));
         out.printf(verboseFormat, index, offset, timestamp, format("capabilities: %s", capabilities));
     }
 
