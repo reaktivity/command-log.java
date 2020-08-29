@@ -1042,13 +1042,11 @@ public final class LoggableStream implements AutoCloseable
 
         final AmqpDataExFW amqpDataEx = amqpDataExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
         final int deferred = amqpDataEx.deferred();
-        final long deliveryId = amqpDataEx.deliveryId();
         final long messageFormat = amqpDataEx.messageFormat();
         final int flags = amqpDataEx.flags();
         final AmqpPropertiesFW properties = amqpDataEx.properties();
 
         out.printf(verboseFormat, index, offset, timestamp, format("deferred: %d", deferred));
-        out.printf(verboseFormat, index, offset, timestamp, format("deliveryId: %d", deliveryId));
         out.printf(verboseFormat, index, offset, timestamp, format("deliveryTag: %s", amqpDataEx.deliveryTag()));
         out.printf(verboseFormat, index, offset, timestamp, format("messageFormat: %d", messageFormat));
         out.printf(verboseFormat, index, offset, timestamp, format("flags: %d", flags));
