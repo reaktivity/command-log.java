@@ -149,8 +149,8 @@ public final class LoggableStream implements AutoCloseable
     {
         this.index = index;
         this.labels = labels;
-        this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] %s\n";
-        this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] %s\n";
+        this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
+        this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
         this.verboseFormat = "[%02d/%08x] [%d] %s\n";
 
         this.layout = layout;
@@ -295,6 +295,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = begin.timestamp();
         final long routeId = begin.routeId();
         final long streamId = begin.streamId();
+        final long sequence = begin.sequence();
+        final long acknowledge = begin.acknowledge();
+        final int maximum = begin.maximum();
         final long traceId = begin.traceId();
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
@@ -308,7 +311,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                   format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
+                sequence - acknowledge, maximum, format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
 
 
         final ExtensionFW extension = begin.extension().get(extensionRO::tryWrap);
@@ -329,8 +332,11 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = data.timestamp();
         final long routeId = data.routeId();
         final long streamId = data.streamId();
+        final long sequence = data.sequence();
+        final long acknowledge = data.acknowledge();
         final long traceId = data.traceId();
         final long budgetId = data.budgetId();
+        final int maximum = data.maximum();
         final int length = data.length();
         final int reserved = data.reserved();
         final long authorization = data.authorization();
@@ -345,7 +351,8 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                      format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]", budgetId, length, reserved, flags, authorization));
+            sequence - acknowledge + reserved, maximum, format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]",
+                    budgetId, length, reserved, flags, authorization));
 
         final ExtensionFW extension = data.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -365,6 +372,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = end.timestamp();
         final long routeId = end.routeId();
         final long streamId = end.streamId();
+        final long sequence = end.sequence();
+        final long acknowledge = end.acknowledge();
+        final int maximum = end.maximum();
         final long traceId = end.traceId();
         final long authorization = end.authorization();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
@@ -377,7 +387,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("END [0x%016x]", authorization));
+                sequence - acknowledge, maximum, format("END [0x%016x]", authorization));
 
         final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -397,6 +407,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = abort.timestamp();
         final long routeId = abort.routeId();
         final long streamId = abort.streamId();
+        final long sequence = abort.sequence();
+        final long acknowledge = abort.acknowledge();
+        final int maximum = abort.maximum();
         final long traceId = abort.traceId();
         final long authorization = abort.authorization();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
@@ -409,7 +422,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("ABORT [0x%016x]", authorization));
+                sequence - acknowledge, maximum, format("ABORT [0x%016x]", authorization));
     }
 
     private void onReset(
@@ -419,6 +432,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = reset.timestamp();
         final long routeId = reset.routeId();
         final long streamId = reset.streamId();
+        final long sequence = reset.sequence();
+        final long acknowledge = reset.acknowledge();
+        final int maximum = reset.maximum();
         final long traceId = reset.traceId();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
 
@@ -430,7 +446,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                "RESET");
+                sequence - acknowledge, maximum, "RESET");
 
         final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
         if (extension != null)
@@ -450,11 +466,13 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = window.timestamp();
         final long routeId = window.routeId();
         final long streamId = window.streamId();
+        final long sequence = window.sequence();
+        final long acknowledge = window.acknowledge();
+        final int maximum = window.maximum();
         final long traceId = window.traceId();
-        final int credit = window.credit();
-        final int padding = window.padding();
         final long budgetId = window.budgetId();
         final int minimum = window.minimum();
+        final int padding = window.padding();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
 
         final int localId = (int)(routeId >> 48) & 0xffff;
@@ -465,7 +483,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("WINDOW [0x%016x] [%d] [%d] [%d]", budgetId, credit, padding, minimum));
+                sequence - acknowledge, maximum, format("WINDOW [0x%016x] [%d] [%d]", budgetId, minimum, padding));
     }
 
     private void onSignal(
@@ -475,6 +493,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = signal.timestamp();
         final long routeId = signal.routeId();
         final long streamId = signal.streamId();
+        final long sequence = signal.sequence();
+        final long acknowledge = signal.acknowledge();
+        final int maximum = signal.maximum();
         final long traceId = signal.traceId();
         final long authorization = signal.authorization();
         final long signalId = signal.signalId();
@@ -488,7 +509,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("SIGNAL [%d] [0x%016x]", signalId, authorization));
+                sequence - acknowledge, maximum, format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
     private void onChallenge(
@@ -498,6 +519,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = challenge.timestamp();
         final long routeId = challenge.routeId();
         final long streamId = challenge.streamId();
+        final long sequence = challenge.sequence();
+        final long acknowledge = challenge.acknowledge();
+        final int maximum = challenge.maximum();
         final long traceId = challenge.traceId();
         final long authorization = challenge.authorization();
         final long initialId = streamId | 0x0000_0000_0000_0001L;
@@ -510,7 +534,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("CHALLENGE [0x%016x]", authorization));
+                sequence - acknowledge, maximum, format("CHALLENGE [0x%016x]", authorization));
     }
 
     private void onFlush(
@@ -520,6 +544,9 @@ public final class LoggableStream implements AutoCloseable
         final long timestamp = flush.timestamp();
         final long routeId = flush.routeId();
         final long streamId = flush.streamId();
+        final long sequence = flush.sequence();
+        final long acknowledge = flush.acknowledge();
+        final int maximum = flush.maximum();
         final long traceId = flush.traceId();
         final long authorization = flush.authorization();
         final long budgetId = flush.budgetId();
@@ -533,7 +560,7 @@ public final class LoggableStream implements AutoCloseable
         final String targetName = labels.lookupLabel(targetId);
 
         out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
-                format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
+                sequence - acknowledge, maximum, format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
 
         final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);
         if (extension != null)
