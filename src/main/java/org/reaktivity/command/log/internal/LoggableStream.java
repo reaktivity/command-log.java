@@ -34,13 +34,13 @@ import org.reaktivity.command.log.internal.spy.RingBufferSpy;
 import org.reaktivity.command.log.internal.types.AmqpPropertiesFW;
 import org.reaktivity.command.log.internal.types.Array32FW;
 import org.reaktivity.command.log.internal.types.ArrayFW;
-import org.reaktivity.command.log.internal.types.KafkaAgeFW;
 import org.reaktivity.command.log.internal.types.KafkaCapabilities;
 import org.reaktivity.command.log.internal.types.KafkaConditionFW;
 import org.reaktivity.command.log.internal.types.KafkaConfigFW;
 import org.reaktivity.command.log.internal.types.KafkaFilterFW;
 import org.reaktivity.command.log.internal.types.KafkaHeaderFW;
 import org.reaktivity.command.log.internal.types.KafkaKeyFW;
+import org.reaktivity.command.log.internal.types.KafkaNotFW;
 import org.reaktivity.command.log.internal.types.KafkaOffsetFW;
 import org.reaktivity.command.log.internal.types.KafkaPartitionFW;
 import org.reaktivity.command.log.internal.types.MqttCapabilities;
@@ -782,9 +782,9 @@ public final class LoggableStream implements AutoCloseable
             final String formattedName = name.buffer().getStringWithoutLengthUtf8(name.offset(), name.sizeof());
             formatted = String.format("header[%s=[%d]]", formattedName, header.valueLen());
             break;
-        case KafkaConditionFW.KIND_AGE:
-            final KafkaAgeFW age = condition.age();
-            formatted = String.format("age[%s]", age.get());
+        case KafkaConditionFW.KIND_NOT:
+            final KafkaNotFW not = condition.not();
+            formatted = String.format("not[%s]", asString(not.condition()));
             break;
         }
         return formatted;
