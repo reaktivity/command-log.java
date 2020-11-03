@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.76</version>
+  <version>0.77</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -44,7 +44,7 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <reaktor.version>0.146</reaktor.version>
-    <nukleus.plugin.version>0.64</nukleus.plugin.version>
+    <nukleus.plugin.version>0.73</nukleus.plugin.version>
     <nukleus.amqp.spec.version>0.23</nukleus.amqp.spec.version>
     <nukleus.mqtt.spec.version>0.46</nukleus.mqtt.spec.version>
     <nukleus.kafka.spec.version>0.157</nukleus.kafka.spec.version>
