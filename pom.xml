@@ -44,8 +44,8 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <reaktor.version>0.146</reaktor.version>
-    <nukleus.plugin.version>0.64</nukleus.plugin.version>
     <nukleus.amqp.spec.version>develop-SNAPSHOT</nukleus.amqp.spec.version>
+    <nukleus.plugin.version>0.73</nukleus.plugin.version>
     <nukleus.mqtt.spec.version>0.46</nukleus.mqtt.spec.version>
     <nukleus.kafka.spec.version>0.157</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>0.97</nukleus.http.spec.version>
