@@ -39,10 +39,13 @@ import org.reaktivity.command.log.internal.types.KafkaConditionFW;
 import org.reaktivity.command.log.internal.types.KafkaConfigFW;
 import org.reaktivity.command.log.internal.types.KafkaFilterFW;
 import org.reaktivity.command.log.internal.types.KafkaHeaderFW;
+import org.reaktivity.command.log.internal.types.KafkaHeadersFW;
 import org.reaktivity.command.log.internal.types.KafkaKeyFW;
 import org.reaktivity.command.log.internal.types.KafkaNotFW;
 import org.reaktivity.command.log.internal.types.KafkaOffsetFW;
 import org.reaktivity.command.log.internal.types.KafkaPartitionFW;
+import org.reaktivity.command.log.internal.types.KafkaSkipFW;
+import org.reaktivity.command.log.internal.types.KafkaValueMatchFW;
 import org.reaktivity.command.log.internal.types.MqttCapabilities;
 import org.reaktivity.command.log.internal.types.MqttCapabilitiesFW;
 import org.reaktivity.command.log.internal.types.MqttUserPropertyFW;
@@ -706,10 +709,12 @@ public final class LoggableStream implements AutoCloseable
         final String16FW topic = merged.topic();
         final ArrayFW<KafkaOffsetFW> partitions = merged.partitions();
         final KafkaCapabilities capabilities = merged.capabilities().get();
+        final Array32FW<KafkaFilterFW> filters = merged.filters();
 
         out.printf(verboseFormat, index, offset, timestamp, format("[merged] %s %s", topic.asString(), capabilities));
         partitions.forEach(p -> out.printf(verboseFormat, index, offset, timestamp,
                                          format("%d: %d %d", p.partitionId(), p.partitionOffset(), p.latestOffset())));
+        filters.forEach(f -> f.conditions().forEach(c -> out.printf(verboseFormat, index, offset, timestamp, asString(c))));
     }
 
     private void onKafkaDescribeBeginEx(
@@ -751,13 +756,46 @@ public final class LoggableStream implements AutoCloseable
             break;
         case KafkaConditionFW.KIND_HEADER:
             final KafkaHeaderFW header = condition.header();
-            final OctetsFW name = header.name();
-            final String formattedName = name.buffer().getStringWithoutLengthUtf8(name.offset(), name.sizeof());
-            formatted = String.format("header[%s=[%d]]", formattedName, header.valueLen());
+            final OctetsFW headerName = header.name();
+            final String formattedHeaderName = headerName.buffer().getStringWithoutLengthUtf8(
+                headerName.offset(), headerName.sizeof());
+            formatted = String.format("header[%s=[%d]]", formattedHeaderName, header.valueLen());
             break;
         case KafkaConditionFW.KIND_NOT:
             final KafkaNotFW not = condition.not();
             formatted = String.format("not[%s]", asString(not.condition()));
+            break;
+        case KafkaConditionFW.KIND_HEADERS:
+            final KafkaHeadersFW headers = condition.headers();
+            final OctetsFW headersName = headers.name();
+            final Array32FW<KafkaValueMatchFW> values = headers.values();
+            final String formattedHeadersName = headersName.buffer().getStringWithoutLengthUtf8(
+                headersName.offset(), headersName.sizeof());
+            final StringBuilder formattedValues = new StringBuilder();
+            values.forEach(v ->
+            {
+                switch (v.kind())
+                {
+                case KafkaValueMatchFW.KIND_VALUE:
+                    final int length = v.value().length();
+                    formattedValues.append(length);
+                    break;
+                case KafkaValueMatchFW.KIND_SKIP:
+                    final KafkaSkipFW skip = v.skip();
+                    switch (skip.get())
+                    {
+                    case SKIP:
+                        formattedValues.append('s');
+                        break;
+                    case SKIP_MANY:
+                        formattedValues.append('S');
+                        break;
+                    }
+                    break;
+                }
+                formattedValues.append(' ');
+            });
+            formatted = String.format("headers[%s=[%s]]", formattedHeadersName, formattedValues.toString());
             break;
         }
         return formatted;
