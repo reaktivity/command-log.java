@@ -43,11 +43,11 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <reaktor.version>0.140</reaktor.version>
-    <nukleus.plugin.version>0.64</nukleus.plugin.version>
+    <reaktor.version>0.146</reaktor.version>
+    <nukleus.plugin.version>0.73</nukleus.plugin.version>
     <nukleus.amqp.spec.version>0.23</nukleus.amqp.spec.version>
     <nukleus.mqtt.spec.version>0.46</nukleus.mqtt.spec.version>
-    <nukleus.kafka.spec.version>0.152</nukleus.kafka.spec.version>
+    <nukleus.kafka.spec.version>0.159</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>0.97</nukleus.http.spec.version>
     <nukleus.tls.spec.version>0.53</nukleus.tls.spec.version>
     <nukleus.tcp.spec.version>0.63</nukleus.tcp.spec.version>
