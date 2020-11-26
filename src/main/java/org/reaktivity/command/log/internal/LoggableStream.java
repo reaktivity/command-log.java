@@ -817,11 +817,14 @@ public final class LoggableStream implements AutoCloseable
         KafkaProduceBeginExFW produce)
     {
         final String16FW topic = produce.topic();
-        final long partitionId = produce.partitionId();
+        final long partitionId = produce.partition().partitionId();
+        final long partitionOffset = produce.partition().partitionOffset();
+        final long latestOffset = produce.partition().latestOffset();
         final StringFW transaction = produce.transaction();
 
         out.printf(verboseFormat, index, offset, timestamp,
-                   format("[produce] %s %d %s", topic.asString(), partitionId, transaction.asString()));
+                   format("[produce] %s %d %d %d %s", topic.asString(), partitionId, partitionOffset,
+                   latestOffset, transaction.asString()));
     }
 
     private void onKafkaDataEx(
