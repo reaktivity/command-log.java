@@ -49,7 +49,7 @@
     <nukleus.mqtt.spec.version>0.55</nukleus.mqtt.spec.version>
     <nukleus.kafka.spec.version>0.163</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>0.97</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>develop-SNAPSHOT</nukleus.tls.spec.version>
+    <nukleus.tls.spec.version>0.58</nukleus.tls.spec.version>
     <nukleus.proxy.spec.version>0.9</nukleus.proxy.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
