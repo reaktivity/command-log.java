@@ -16,17 +16,14 @@
 package org.reaktivity.command.log.internal;
 
 import static java.lang.String.format;
-import static java.net.InetAddress.getByAddress;
+import static java.nio.ByteOrder.BIG_ENDIAN;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.function.Consumer;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 
 import org.agrona.DirectBuffer;
-import org.agrona.LangUtil;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.reaktivity.command.log.internal.labels.LabelManager;
 import org.reaktivity.command.log.internal.layouts.StreamsLayout;
@@ -50,9 +47,15 @@ import org.reaktivity.command.log.internal.types.MqttCapabilities;
 import org.reaktivity.command.log.internal.types.MqttCapabilitiesFW;
 import org.reaktivity.command.log.internal.types.MqttUserPropertyFW;
 import org.reaktivity.command.log.internal.types.OctetsFW;
+import org.reaktivity.command.log.internal.types.ProxyAddressFW;
+import org.reaktivity.command.log.internal.types.ProxyAddressInet4FW;
+import org.reaktivity.command.log.internal.types.ProxyAddressInet6FW;
+import org.reaktivity.command.log.internal.types.ProxyAddressInetFW;
+import org.reaktivity.command.log.internal.types.ProxyAddressUnixFW;
+import org.reaktivity.command.log.internal.types.ProxyInfoFW;
+import org.reaktivity.command.log.internal.types.ProxySecureInfoFW;
 import org.reaktivity.command.log.internal.types.String16FW;
 import org.reaktivity.command.log.internal.types.StringFW;
-import org.reaktivity.command.log.internal.types.TcpAddressFW;
 import org.reaktivity.command.log.internal.types.stream.AbortFW;
 import org.reaktivity.command.log.internal.types.stream.AmqpBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.AmqpDataExFW;
@@ -86,10 +89,9 @@ import org.reaktivity.command.log.internal.types.stream.KafkaResetExFW;
 import org.reaktivity.command.log.internal.types.stream.MqttBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.MqttDataExFW;
 import org.reaktivity.command.log.internal.types.stream.MqttFlushExFW;
+import org.reaktivity.command.log.internal.types.stream.ProxyBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.SignalFW;
-import org.reaktivity.command.log.internal.types.stream.TcpBeginExFW;
-import org.reaktivity.command.log.internal.types.stream.TlsBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
 import org.reaktivity.nukleus.function.MessageConsumer;
 
@@ -109,8 +111,7 @@ public final class LoggableStream implements AutoCloseable
 
     private final ExtensionFW extensionRO = new ExtensionFW();
 
-    private final TcpBeginExFW tcpBeginExRO = new TcpBeginExFW();
-    private final TlsBeginExFW tlsBeginExRO = new TlsBeginExFW();
+    private final ProxyBeginExFW proxyBeginExRO = new ProxyBeginExFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final HttpDataExFW httpDataExRO = new HttpDataExFW();
     private final HttpEndExFW httpEndExRO = new HttpEndExFW();
@@ -205,14 +206,9 @@ public final class LoggableStream implements AutoCloseable
             frameHandlers.put(FlushFW.TYPE_ID, (t, b, i, l) -> onFlush(flushRO.wrap(b, i, i + l)));
         }
 
-        if (hasExtensionType.test("tcp"))
+        if (hasExtensionType.test("proxy") || hasExtensionType.test("tcp") || hasExtensionType.test("tls"))
         {
-            beginHandlers.put(labels.lookupLabelId("tcp"), this::onTcpBeginEx);
-        }
-
-        if (hasExtensionType.test("tls"))
-        {
-            beginHandlers.put(labels.lookupLabelId("tls"), this::onTlsBeginEx);
+            beginHandlers.put(labels.lookupLabelId("proxy"), this::onProxyBeginEx);
         }
 
         if (hasExtensionType.test("http"))
@@ -549,76 +545,170 @@ public final class LoggableStream implements AutoCloseable
         }
     }
 
-    private InetSocketAddress toInetSocketAddress(
-        TcpAddressFW tcpAddress,
-        int tcpPort)
-    {
-        InetSocketAddress socketAddress = null;
-
-        try
-        {
-            byte[] address;
-
-            switch (tcpAddress.kind())
-            {
-            case TcpAddressFW.KIND_IPV4_ADDRESS:
-                address = new byte[4];
-                tcpAddress.ipv4Address().get((b, o, l) ->
-                {
-                    b.getBytes(o, address);
-                    return address;
-                });
-                socketAddress = new InetSocketAddress(getByAddress(address), tcpPort);
-                break;
-            case TcpAddressFW.KIND_IPV6_ADDRESS:
-                address = new byte[16];
-                tcpAddress.ipv4Address().get((b, o, l) ->
-                {
-                    b.getBytes(o, address);
-                    return address;
-                });
-                socketAddress = new InetSocketAddress(getByAddress(address), tcpPort);
-                break;
-            case TcpAddressFW.KIND_HOST:
-                String hostName = tcpAddress.host().asString();
-                socketAddress = new InetSocketAddress(hostName, tcpPort);
-                break;
-            }
-        }
-        catch (UnknownHostException ex)
-        {
-            LangUtil.rethrowUnchecked(ex);
-        }
-
-        return socketAddress;
-    }
-
-    private void onTcpBeginEx(
+    private void onProxyBeginEx(
         final BeginFW begin)
     {
         final int offset = begin.offset() - HEADER_LENGTH;
         final long timestamp = begin.timestamp();
         final OctetsFW extension = begin.extension();
 
-        final TcpBeginExFW tcpBeginEx = tcpBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final InetSocketAddress localAddress = toInetSocketAddress(tcpBeginEx.localAddress(), tcpBeginEx.localPort());
-        final InetSocketAddress remoteAddress = toInetSocketAddress(tcpBeginEx.remoteAddress(), tcpBeginEx.remotePort());
+        final ProxyBeginExFW proxyBeginEx = proxyBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
+        final ProxyAddressFW address = proxyBeginEx.address();
+        final Array32FW<ProxyInfoFW> infos = proxyBeginEx.infos();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("%s\t%s", localAddress, remoteAddress));
+        onProxyBeginExAddress(offset, timestamp, address);
+        infos.forEach(info -> onProxyBeginExInfo(offset, timestamp, info));
     }
 
-    private void onTlsBeginEx(
-        final BeginFW begin)
+    private void onProxyBeginExAddress(
+        final int offset,
+        final long timestamp,
+        final ProxyAddressFW address)
     {
-        final int offset = begin.offset() - HEADER_LENGTH;
-        final long timestamp = begin.timestamp();
-        final OctetsFW extension = begin.extension();
+        switch (address.kind())
+        {
+        case INET:
+            onProxyBeginExAddressInet(offset, timestamp, address.inet());
+            break;
+        case INET4:
+            onProxyBeginExAddressInet4(offset, timestamp, address.inet4());
+            break;
+        case INET6:
+            onProxyBeginExAddressInet6(offset, timestamp, address.inet6());
+            break;
+        case UNIX:
+            onProxyBeginExAddressUnix(offset, timestamp, address.unix());
+            break;
+        }
+    }
 
-        final TlsBeginExFW tlsBeginEx = tlsBeginExRO.wrap(extension.buffer(), extension.offset(), extension.limit());
-        final String hostname = tlsBeginEx.hostname().asString();
-        final String protocol = tlsBeginEx.protocol().asString();
+    private void onProxyBeginExAddressInet(
+        final int offset,
+        final long timestamp,
+        final ProxyAddressInetFW address)
+    {
+        final String source = address.source().asString();
+        final int sourcePort = address.sourcePort();
+        final String destination = address.destination().asString();
+        final int destinationPort = address.destinationPort();
 
-        out.printf(verboseFormat, index, offset, timestamp, format("%s\t%s", hostname, protocol));
+        out.printf(verboseFormat, index, offset, timestamp,
+                   format("%s:%d\t%s:%d", source, sourcePort, destination, destinationPort));
+    }
+
+    private void onProxyBeginExAddressInet4(
+        final int offset,
+        final long timestamp,
+        final ProxyAddressInet4FW address)
+    {
+        final DirectBuffer source = address.source().value();
+        final int sourcePort = address.sourcePort();
+        final DirectBuffer destination = address.destination().value();
+        final int destinationPort = address.destinationPort();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+                   format("%d.%d.%d.%d:%d\t%d.%d.%d.%d:%d",
+                          source.getByte(0) & 0xff, source.getByte(1) & 0xff,
+                          source.getByte(2) & 0xff, source.getByte(3) & 0xff,
+                          sourcePort,
+                          destination.getByte(0) & 0xff, destination.getByte(1) & 0xff,
+                          destination.getByte(2) & 0xff, destination.getByte(3) & 0xff,
+                          destinationPort));
+    }
+
+    private void onProxyBeginExAddressInet6(
+        final int offset,
+        final long timestamp,
+        final ProxyAddressInet6FW address)
+    {
+        final DirectBuffer source = address.source().value();
+        final int sourcePort = address.sourcePort();
+        final DirectBuffer destination = address.destination().value();
+        final int destinationPort = address.destinationPort();
+
+        out.printf(verboseFormat, index, offset, timestamp,
+               format("[%x:%x:%x:%x:%x:%x:%x:%x]:%d\t[%x:%x:%x:%x:%x:%x:%x:%x]:%d",
+                      source.getShort(0, BIG_ENDIAN) & 0xffff, source.getShort(2, BIG_ENDIAN) & 0xffff,
+                      source.getShort(4, BIG_ENDIAN) & 0xffff, source.getShort(6, BIG_ENDIAN) & 0xffff,
+                      source.getShort(8, BIG_ENDIAN) & 0xffff, source.getShort(10, BIG_ENDIAN) & 0xffff,
+                      source.getShort(12, BIG_ENDIAN) & 0xffff, source.getShort(14, BIG_ENDIAN) & 0xffff,
+                      sourcePort,
+                      destination.getShort(0, BIG_ENDIAN) & 0xffff, destination.getShort(2, BIG_ENDIAN) & 0xffff,
+                      destination.getShort(4, BIG_ENDIAN) & 0xffff, destination.getShort(6, BIG_ENDIAN) & 0xffff,
+                      destination.getShort(8, BIG_ENDIAN) & 0xffff, destination.getShort(10, BIG_ENDIAN) & 0xffff,
+                      destination.getShort(12, BIG_ENDIAN) & 0xffff, destination.getShort(14, BIG_ENDIAN) & 0xffff,
+                      destinationPort));
+    }
+
+    private void onProxyBeginExAddressUnix(
+        final int offset,
+        final long timestamp,
+        final ProxyAddressUnixFW address)
+    {
+        final String source = asString(address.source());
+        final String destination = asString(address.destination());
+
+        out.printf(verboseFormat, index, offset, timestamp,
+                   format("%s\t%s", source, destination));
+    }
+
+    private void onProxyBeginExInfo(
+        final int offset,
+        final long timestamp,
+        final ProxyInfoFW info)
+    {
+        switch (info.kind())
+        {
+        case ALPN:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("alpn: %s", info.alpn().asString()));
+            break;
+        case AUTHORITY:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("authority: %s", info.authority().asString()));
+            break;
+        case IDENTITY:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("identity: %s", asString(info.identity().value())));
+            break;
+        case NAMESPACE:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("namespace: %s", info.namespace().asString()));
+            break;
+        case SECURE:
+            onProxyBeginExSecureInfo(offset, timestamp, info.secure());
+            break;
+        }
+    }
+
+    private void onProxyBeginExSecureInfo(
+        final int offset,
+        final long timestamp,
+        final ProxySecureInfoFW info)
+    {
+        switch (info.kind())
+        {
+        case CIPHER:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("cipher: %s", info.cipher().asString()));
+            break;
+        case KEY:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("key: %s", info.key().asString()));
+            break;
+        case NAME:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("name: %s", info.name().asString()));
+            break;
+        case PROTOCOL:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("version: %s", info.protocol().asString()));
+            break;
+        case SIGNATURE:
+            out.printf(verboseFormat, index, offset, timestamp,
+                       format("signature: %s", info.signature().asString()));
+            break;
+        }
     }
 
     private void onHttpBeginEx(
