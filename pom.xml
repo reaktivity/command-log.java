@@ -44,13 +44,13 @@
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
     <reaktor.version>develop-SNAPSHOT</reaktor.version>
-    <nukleus.plugin.version>0.73</nukleus.plugin.version>
+    <nukleus.plugin.version>0.77</nukleus.plugin.version>
     <nukleus.amqp.spec.version>develop-SNAPSHOT</nukleus.amqp.spec.version>
     <nukleus.mqtt.spec.version>develop-SNAPSHOT</nukleus.mqtt.spec.version>
     <nukleus.kafka.spec.version>develop-SNAPSHOT</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>develop-SNAPSHOT</nukleus.http.spec.version>
     <nukleus.tls.spec.version>develop-SNAPSHOT</nukleus.tls.spec.version>
-    <nukleus.tcp.spec.version>develop-SNAPSHOT</nukleus.tcp.spec.version>
+    <nukleus.proxy.spec.version>develop-SNAPSHOT</nukleus.proxy.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
@@ -59,8 +59,8 @@
   <dependencies>
     <dependency>
       <groupId>org.reaktivity</groupId>
-      <artifactId>nukleus-tcp.spec</artifactId>
-      <version>${nukleus.tcp.spec.version}</version>
+      <artifactId>nukleus-proxy.spec</artifactId>
+      <version>${nukleus.proxy.spec.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -112,7 +112,7 @@
         <artifactId>nukleus-maven-plugin</artifactId>
         <version>${nukleus.plugin.version}</version>
         <configuration>
-          <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream tls::stream tls::control tcp::stream</scopeNames>
+          <scopeNames>core amqp::stream mqtt::stream kafka::stream http::stream tls::control proxy::stream</scopeNames>
           <packageName>org.reaktivity.command.log.internal.types</packageName>
         </configuration>
         <executions>
