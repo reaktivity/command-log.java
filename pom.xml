@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.84</version>
+  <version>0.85</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -395,12 +395,6 @@
                   <version>${project.version}</version>
                   <classifier>javadoc</classifier>
                 </artifact>
-                <artifact>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>${project.artifactId}</artifactId>
-                  <version>${project.version}</version>
-                  <classifier>tests</classifier>
-                </artifact>
               </artifactItems>
             </configuration>
           </plugin>
@@ -449,10 +443,6 @@
                 <artifact>
                   <classifier>javadoc</classifier>
                   <file>${project.build.directory}/${project.artifactId}-${project.version}-javadoc.jar</file>
-                </artifact>
-                <artifact>
-                  <classifier>tests</classifier>
-                  <file>${project.build.directory}/${project.artifactId}-${project.version}-tests.jar</file>
                 </artifact>
               </artifacts>
             </configuration>
