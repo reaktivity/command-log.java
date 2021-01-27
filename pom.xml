@@ -50,14 +50,14 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <reaktor.version>0.155</reaktor.version>
-    <nukleus.plugin.version>0.77</nukleus.plugin.version>
-    <nukleus.amqp.spec.version>0.57</nukleus.amqp.spec.version>
-    <nukleus.mqtt.spec.version>0.58</nukleus.mqtt.spec.version>
-    <nukleus.kafka.spec.version>0.168</nukleus.kafka.spec.version>
-    <nukleus.http.spec.version>0.106</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>0.59</nukleus.tls.spec.version>
-    <nukleus.proxy.spec.version>0.10</nukleus.proxy.spec.version>
+    <reaktor.version>0.159</reaktor.version>
+    <nukleus.plugin.version>0.83</nukleus.plugin.version>
+    <nukleus.amqp.spec.version>0.58</nukleus.amqp.spec.version>
+    <nukleus.mqtt.spec.version>0.59</nukleus.mqtt.spec.version>
+    <nukleus.kafka.spec.version>0.169</nukleus.kafka.spec.version>
+    <nukleus.http.spec.version>0.107</nukleus.http.spec.version>
+    <nukleus.tls.spec.version>0.60</nukleus.tls.spec.version>
+    <nukleus.proxy.spec.version>0.14</nukleus.proxy.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
