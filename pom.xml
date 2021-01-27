@@ -395,12 +395,6 @@
                   <version>${project.version}</version>
                   <classifier>javadoc</classifier>
                 </artifact>
-                <artifact>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>${project.artifactId}</artifactId>
-                  <version>${project.version}</version>
-                  <classifier>tests</classifier>
-                </artifact>
               </artifactItems>
             </configuration>
           </plugin>
@@ -449,10 +443,6 @@
                 <artifact>
                   <classifier>javadoc</classifier>
                   <file>${project.build.directory}/${project.artifactId}-${project.version}-javadoc.jar</file>
-                </artifact>
-                <artifact>
-                  <classifier>tests</classifier>
-                  <file>${project.build.directory}/${project.artifactId}-${project.version}-tests.jar</file>
                 </artifact>
               </artifacts>
             </configuration>
