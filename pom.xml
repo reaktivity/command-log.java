@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.reaktivity</groupId>
   <artifactId>command-log</artifactId>
-  <version>0.85</version>
+  <version>0.86</version>
   <name>Reaktivity log Command</name>
   <description>Reaktivity log Command</description>
   <url>https://github.com/reaktivity/command-log.java</url>
@@ -50,14 +50,14 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <reaktor.version>0.159</reaktor.version>
-    <nukleus.plugin.version>0.83</nukleus.plugin.version>
-    <nukleus.amqp.spec.version>0.58</nukleus.amqp.spec.version>
-    <nukleus.mqtt.spec.version>0.59</nukleus.mqtt.spec.version>
-    <nukleus.kafka.spec.version>0.169</nukleus.kafka.spec.version>
-    <nukleus.http.spec.version>0.107</nukleus.http.spec.version>
-    <nukleus.tls.spec.version>0.60</nukleus.tls.spec.version>
-    <nukleus.proxy.spec.version>0.14</nukleus.proxy.spec.version>
+    <reaktor.version>0.161</reaktor.version>
+    <nukleus.plugin.version>0.84</nukleus.plugin.version>
+    <nukleus.amqp.spec.version>0.59</nukleus.amqp.spec.version>
+    <nukleus.mqtt.spec.version>0.60</nukleus.mqtt.spec.version>
+    <nukleus.kafka.spec.version>0.170</nukleus.kafka.spec.version>
+    <nukleus.http.spec.version>0.108</nukleus.http.spec.version>
+    <nukleus.tls.spec.version>0.61</nukleus.tls.spec.version>
+    <nukleus.proxy.spec.version>0.15</nukleus.proxy.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>
@@ -146,6 +146,34 @@
             <exclude>src/conf/**</exclude>
           </excludes>
           <failIfUnknown>true</failIfUnknown>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jasig.maven</groupId>
+        <artifactId>maven-notice-plugin</artifactId>
+        <version>1.1.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.1</version>
+          </dependency>
+          <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+            <version>2.2.5</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <includeScopes>compile</includeScopes>
         </configuration>
         <executions>
           <execution>
@@ -264,6 +292,34 @@
         </configuration>
       </plugin>
     </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.eclipse.m2e</groupId>
+          <artifactId>lifecycle-mapping</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <lifecycleMappingMetadata>
+              <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.jasig.maven</groupId>
+                    <artifactId>maven-notice-plugin</artifactId>
+                    <versionRange>[1.1.0,)</versionRange>
+                    <goals>
+                      <goal>check</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore></ignore>
+                  </action>
+                </pluginExecution>
+              </pluginExecutions>
+            </lifecycleMappingMetadata>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
 
   <profiles>
