@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.IdleStrategy;
 import org.reaktivity.command.log.internal.layouts.RoutesLayout;
-import org.reaktivity.nukleus.Configuration;
+import org.reaktivity.reaktor.nukleus.Configuration;
 
 public class LogRoutesCommand implements Runnable
 {

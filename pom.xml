@@ -50,7 +50,7 @@
     <checkstyle.config.location>src/conf/checkstyle/configuration.xml</checkstyle.config.location>
     <checkstyle.suppressions.location>src/conf/checkstyle/suppressions.xml</checkstyle.suppressions.location>
 
-    <reaktor.version>0.163</reaktor.version>
+    <reaktor.version>develop-SNAPSHOT</reaktor.version>
     <nukleus.plugin.version>0.85</nukleus.plugin.version>
     <nukleus.amqp.spec.version>0.60</nukleus.amqp.spec.version>
     <nukleus.mqtt.spec.version>0.61</nukleus.mqtt.spec.version>

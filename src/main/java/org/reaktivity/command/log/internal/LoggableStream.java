@@ -93,7 +93,7 @@ import org.reaktivity.command.log.internal.types.stream.ProxyBeginExFW;
 import org.reaktivity.command.log.internal.types.stream.ResetFW;
 import org.reaktivity.command.log.internal.types.stream.SignalFW;
 import org.reaktivity.command.log.internal.types.stream.WindowFW;
-import org.reaktivity.nukleus.function.MessageConsumer;
+import org.reaktivity.reaktor.nukleus.function.MessageConsumer;
 
 public final class LoggableStream implements AutoCloseable
 {
@@ -153,8 +153,8 @@ public final class LoggableStream implements AutoCloseable
     {
         this.index = index;
         this.labels = labels;
-        this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s -> %s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
-        this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s <- %s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
+        this.streamFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
+        this.throttleFormat = "[%02d/%08x] [%d] [0x%016x] [%s.%s]\t[0x%016x] [0x%016x] [%d/%d] %s\n";
         this.verboseFormat = "[%02d/%08x] [%d] %s\n";
 
         this.layout = layout;
@@ -300,16 +300,13 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = begin.traceId();
         final long authorization = begin.authorization();
         final long affinity = begin.affinity();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, format("BEGIN [0x%016x] [0x%016x]", authorization, affinity));
 
 
@@ -340,16 +337,13 @@ public final class LoggableStream implements AutoCloseable
         final int reserved = data.reserved();
         final long authorization = data.authorization();
         final byte flags = (byte) (data.flags() & 0xFF);
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
             sequence - acknowledge + reserved, maximum, format("DATA [0x%016x] [%d] [%d] [%x] [0x%016x]",
                     budgetId, length, reserved, flags, authorization));
 
@@ -376,16 +370,13 @@ public final class LoggableStream implements AutoCloseable
         final int maximum = end.maximum();
         final long traceId = end.traceId();
         final long authorization = end.authorization();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, format("END [0x%016x]", authorization));
 
         final ExtensionFW extension = end.extension().get(extensionRO::tryWrap);
@@ -411,16 +402,13 @@ public final class LoggableStream implements AutoCloseable
         final int maximum = abort.maximum();
         final long traceId = abort.traceId();
         final long authorization = abort.authorization();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, format("ABORT [0x%016x]", authorization));
     }
 
@@ -435,16 +423,13 @@ public final class LoggableStream implements AutoCloseable
         final long acknowledge = reset.acknowledge();
         final int maximum = reset.maximum();
         final long traceId = reset.traceId();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, "RESET");
 
         final ExtensionFW extension = reset.extension().get(extensionRO::tryWrap);
@@ -472,16 +457,13 @@ public final class LoggableStream implements AutoCloseable
         final long budgetId = window.budgetId();
         final int minimum = window.minimum();
         final int padding = window.padding();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, format("WINDOW [0x%016x] [%d] [%d]", budgetId, minimum, padding));
     }
 
@@ -498,16 +480,13 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = signal.traceId();
         final long authorization = signal.authorization();
         final long signalId = signal.signalId();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, format("SIGNAL [%d] [0x%016x]", signalId, authorization));
     }
 
@@ -523,16 +502,13 @@ public final class LoggableStream implements AutoCloseable
         final int maximum = challenge.maximum();
         final long traceId = challenge.traceId();
         final long authorization = challenge.authorization();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(throttleFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(throttleFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, format("CHALLENGE [0x%016x]", authorization));
     }
 
@@ -549,16 +525,13 @@ public final class LoggableStream implements AutoCloseable
         final long traceId = flush.traceId();
         final long authorization = flush.authorization();
         final long budgetId = flush.budgetId();
-        final long initialId = streamId | 0x0000_0000_0000_0001L;
 
-        final int localId = (int)(routeId >> 48) & 0xffff;
-        final int remoteId = (int)(routeId >> 32) & 0xffff;
-        final int sourceId = streamId == initialId ? localId : remoteId;
-        final int targetId = streamId == initialId ? remoteId : localId;
-        final String sourceName = labels.lookupLabel(sourceId);
-        final String targetName = labels.lookupLabel(targetId);
+        final int namespaceId = (int)(routeId >> 32) & 0xffff_ffff;
+        final int bindingId = (int)(routeId >> 0) & 0xffff_ffff;
+        final String namespace = labels.lookupLabel(namespaceId);
+        final String binding = labels.lookupLabel(bindingId);
 
-        out.printf(streamFormat, index, offset, timestamp, traceId, sourceName, targetName, routeId, streamId,
+        out.printf(streamFormat, index, offset, timestamp, traceId, namespace, binding, routeId, streamId,
                 sequence - acknowledge, maximum, format("FLUSH [0x%016x] [0x%016x]", budgetId, authorization));
 
         final ExtensionFW extension = flush.extension().get(extensionRO::tryWrap);

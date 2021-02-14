@@ -31,8 +31,8 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.reaktivity.command.log.internal.spy.RingBufferSpy.SpyPosition;
-import org.reaktivity.nukleus.Configuration;
 import org.reaktivity.reaktor.ReaktorConfiguration;
+import org.reaktivity.reaktor.nukleus.Configuration;
 
 public final class LogCommand
 {
