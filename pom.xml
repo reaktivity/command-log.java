@@ -57,7 +57,7 @@
     <nukleus.kafka.spec.version>0.171</nukleus.kafka.spec.version>
     <nukleus.http.spec.version>0.109</nukleus.http.spec.version>
     <nukleus.tls.spec.version>0.62</nukleus.tls.spec.version>
-    <nukleus.proxy.spec.version>0.16</nukleus.proxy.spec.version>
+    <nukleus.proxy.spec.version>develop-SNAPSHOT</nukleus.proxy.spec.version>
 
     <jacoco.coverage.ratio>1.00</jacoco.coverage.ratio>
     <jacoco.missed.count>0</jacoco.missed.count>

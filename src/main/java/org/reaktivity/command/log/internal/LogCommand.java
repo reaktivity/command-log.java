@@ -137,10 +137,6 @@ public final class LogCommand
             {
                 command = new LogQueueDepthCommand(config, out, verbose, separator);
             }
-            else if ("routes".equals(type))
-            {
-                command = new LogRoutesCommand(config, out, verbose);
-            }
 
             do
             {
