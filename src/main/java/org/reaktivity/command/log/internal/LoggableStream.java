@@ -579,6 +579,8 @@ public final class LoggableStream implements AutoCloseable
         case UNIX:
             onProxyBeginExAddressUnix(offset, timestamp, address.unix());
             break;
+        default:
+            break;
         }
     }
 
