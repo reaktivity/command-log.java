@@ -16,7 +16,7 @@
 package org.reaktivity.command.log.internal.spy;
 
 import org.agrona.DirectBuffer;
-import org.reaktivity.nukleus.function.MessagePredicate;
+import org.reaktivity.reaktor.nukleus.function.MessagePredicate;
 
 public interface RingBufferSpy
 {
