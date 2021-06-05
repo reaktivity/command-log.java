@@ -16,11 +16,11 @@
 package org.reaktivity.command.log.internal.spy;
 
 import static org.agrona.BitUtil.align;
-import static org.agrona.concurrent.ringbuffer.OneToOneRingBuffer.PADDING_MSG_TYPE_ID;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.ALIGNMENT;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.HEADER_LENGTH;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.lengthOffset;
 import static org.agrona.concurrent.ringbuffer.RecordDescriptor.typeOffset;
+import static org.agrona.concurrent.ringbuffer.RingBuffer.PADDING_MSG_TYPE_ID;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.HEAD_POSITION_OFFSET;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TAIL_POSITION_OFFSET;
 import static org.agrona.concurrent.ringbuffer.RingBufferDescriptor.TRAILER_LENGTH;
@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
-import org.reaktivity.nukleus.function.MessagePredicate;
+import org.reaktivity.reaktor.nukleus.function.MessagePredicate;
 
 public class OneToOneRingBufferSpy implements RingBufferSpy
 {
